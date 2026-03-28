@@ -1,0 +1,61 @@
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
+
+export async function middleware(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({
+    request,
+  });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          supabaseResponse = NextResponse.next({
+            request,
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, { ...options, sameSite: "lax" })
+          );
+        },
+      },
+    }
+  );
+
+  // Refresh session if expired - required for Server Components
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Basic route protection
+  const isAuthRoute = request.nextUrl.pathname.startsWith("/auth");
+  const isDashboardRoute = request.nextUrl.pathname.startsWith("/dashboard");
+
+  if (isDashboardRoute && !user) {
+    // TIPS: Aktifkan kembali baris ini nanti jika ingin membatasi dashboard hanya untuk user yang sudah login.
+    // return NextResponse.redirect(new URL("/auth", request.url));
+  }
+
+  if (isAuthRoute && user) {
+    // If accessing /auth while logged in, redirect to dashboard
+    // Exception: /auth/callback should not be redirected blindly 
+    if (!request.nextUrl.pathname.includes("/callback")) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+  }
+
+  return supabaseResponse;
+}
+
+export const config = {
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
+};
