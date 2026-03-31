@@ -249,3 +249,50 @@ h1,h2,h3,h4,h5,h6 {
   transform: translateY(-4px);
   box-shadow: 0 12px 32px rgba(37, 99, 235, 0.12), 0 4px 12px rgba(15,23,42,0.08);
 }
+
+/* =========================================
+   ANDROID / MOBILE RESPONSIVE OVERRIDES
+   ========================================= */
+@media screen and (max-width: 1024px) {
+  /* Force grid layout into a single column stack on mobile */
+  .mobile-col-1 {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Force grid layout to 2 columns on mobile/tablet */
+  .mobile-col-2 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* Force hiding element on mobile (e.g. Auth right panel, Dashboard sidebar) */
+  .mobile-hide {
+    display: none !important;
+  }
+  
+  .mobile-show {
+    display: flex !important;
+  }
+
+  /* Reduce padding on mobile so it doesn't overflow horizontally */
+  .mobile-px {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+  
+  /* Reduce excessive top/bottom padding for smaller screens */
+  .mobile-py {
+    padding-top: 40px !important;
+    padding-bottom: 40px !important;
+  }
+  
+  /* Flex direction column */
+  .mobile-flex-col {
+    flex-direction: column !important;
+  }
+  
+  /* Let containers adapt their height dynamically on mobile */
+  .mobile-auto-h {
+    height: auto !important;
+    min-height: auto !important;
+  }
+}

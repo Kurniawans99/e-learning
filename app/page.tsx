@@ -60,8 +60,8 @@ export default async function LandingPage() {
       <ClientNavbar />
 
       {/* ── HERO ── */}
-      <section className="hero-section" style={{ padding: "80px 32px 100px", position: "relative" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center", position: "relative", zIndex: 1 }}>
+      <section className="hero-section mobile-px mobile-py" style={{ padding: "80px 32px 100px", position: "relative" }}>
+        <div className="mobile-col-1 mobile-flex-col mobile-auto-h" style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center", position: "relative", zIndex: 1 }}>
           <div>
             <div style={{ marginBottom: 22 }}>
               <span style={{
@@ -165,8 +165,8 @@ export default async function LandingPage() {
       </section>
 
       {/* ── STATS ── */}
-      <section style={{ background: "white", borderBottom: "1px solid var(--border)", padding: "36px 32px", boxShadow: "0 4px 20px rgba(15,23,42,0.05)" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 40 }}>
+      <section className="mobile-px mobile-py" style={{ background: "white", borderBottom: "1px solid var(--border)", padding: "36px 32px", boxShadow: "0 4px 20px rgba(15,23,42,0.05)" }}>
+        <div className="mobile-col-2 mobile-auto-h" style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 40 }}>
           {STATS.map((s) => (
             <div key={s.label} style={{ textAlign: "center" }}>
               <div style={{ fontSize: 38, fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif", marginBottom: 4, color: "var(--primary)" }}>{s.value}</div>
@@ -177,7 +177,7 @@ export default async function LandingPage() {
       </section>
 
       {/* ── COURSES (from DB) ── */}
-      <section style={{ padding: "88px 32px", maxWidth: 1200, margin: "0 auto" }}>
+      <section className="mobile-px mobile-py" style={{ padding: "88px 32px", maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ marginBottom: 48 }}>
           <span className="badge badge-primary" style={{ marginBottom: 12 }}>Curated Catalog</span>
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
@@ -193,7 +193,7 @@ export default async function LandingPage() {
             <p>No courses available yet. Add data in your Supabase dashboard.</p>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
+          <div className="mobile-col-1 mobile-flex-col mobile-auto-h" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
             {courses.map((course) => {
               const color = categoryColor(course.category);
               return (
@@ -232,14 +232,14 @@ export default async function LandingPage() {
       </section>
 
       {/* ── FEATURES ── */}
-      <section style={{ padding: "88px 32px", background: "#F1F5F9", borderTop: "1px solid var(--border)" }}>
+      <section className="mobile-px mobile-py" style={{ padding: "88px 32px", background: "#F1F5F9", borderTop: "1px solid var(--border)" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 64 }}>
             <span className="badge badge-primary" style={{ marginBottom: 16 }}><Sparkles size={10} /> Engineered for Transformation</span>
             <h2 style={{ fontSize: "clamp(28px, 3vw, 44px)", marginBottom: 16 }}>How Your Intelligent <span className="gradient-text">Curator Works</span></h2>
             <p style={{ color: "var(--text-2)", maxWidth: 500, margin: "0 auto", lineHeight: 1.7 }}>Four powerful pillars that make IntelliCourse the smartest way to learn any skill.</p>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 20 }}>
+          <div className="mobile-col-1 mobile-flex-col mobile-auto-h" style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 20 }}>
             {FEATURES.map((f, i) => (
               <div key={f.title} className="glass" style={{ padding: "32px", cursor: "default" }}>
                 <div style={{ width: 52, height: 52, borderRadius: 14, background: ["var(--primary-subtle)","rgba(14,165,233,0.08)","rgba(245,158,11,0.08)","rgba(16,185,129,0.08)"][i], display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
@@ -254,13 +254,13 @@ export default async function LandingPage() {
       </section>
 
       {/* ── TESTIMONIALS (from DB) ── */}
-      <section style={{ padding: "88px 32px", maxWidth: 1200, margin: "0 auto" }}>
+      <section className="mobile-px mobile-py" style={{ padding: "88px 32px", maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 56 }}>
           <span className="badge badge-primary" style={{ marginBottom: 16 }}>Success Stories</span>
           <h2 style={{ fontSize: "clamp(28px, 3vw, 40px)" }}>Transformations that <span className="gradient-text">Speak</span></h2>
           <p style={{ color: "var(--text-2)", marginTop: 12, maxWidth: 420, margin: "12px auto 0" }}>Real learners, real results — powered by AI personalization.</p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
+        <div className="mobile-col-1 mobile-flex-col mobile-auto-h" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
           {(testimonials.length > 0 ? testimonials : [
             { id: "1", name: "Sarah Kim",    role: "ML Engineer @ Google",     text: "IntelliCourse didn't just teach me ML — it understood my gaps and patched them precisely. I went from hobbyist to Google in 8 months.", avatar_initials: "SK", created_at: "" },
             { id: "2", name: "Marcus Chen",  role: "Senior Designer @ Figma",  text: "The AI knew I needed visual-first content before I even realized it. Every recommendation felt like it was made by someone who knew me.",  avatar_initials: "MC", created_at: "" },
@@ -282,7 +282,7 @@ export default async function LandingPage() {
       </section>
 
       {/* ── CTA ── */}
-      <section style={{ padding: "0 32px 88px", maxWidth: 1200, margin: "0 auto" }}>
+      <section className="mobile-px mobile-py" style={{ padding: "0 32px 88px", maxWidth: 1200, margin: "0 auto" }}>
         <div className="hero-section" style={{ borderRadius: 24, padding: "72px 64px", textAlign: "center", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "relative", zIndex: 1 }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 20, background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 99, padding: "5px 14px", fontSize: 12, fontWeight: 600, color: "white" }}>
@@ -290,7 +290,7 @@ export default async function LandingPage() {
             </span>
             <h2 style={{ fontSize: "clamp(28px, 3vw, 48px)", marginBottom: 18, color: "white" }}>Ready for Your Custom Path?</h2>
             <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 17, maxWidth: 500, margin: "0 auto 40px", lineHeight: 1.7 }}>Join 500,000+ learners who've optimized their education with IntelliCourse.</p>
-            <div style={{ display: "flex", gap: 14, justifyContent: "center", alignItems: "center" }}>
+            <div className="mobile-flex-col" style={{ display: "flex", gap: 14, justifyContent: "center", alignItems: "center" }}>
               <Link href="/auth" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "white", color: "var(--primary)", borderRadius: 10, padding: "14px 30px", fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 16, textDecoration: "none", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>Start Your Assessment <ArrowRight size={16} /></Link>
               <button style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.15)", color: "white", border: "1.5px solid rgba(255,255,255,0.3)", borderRadius: 10, padding: "14px 24px", fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, fontSize: 16, cursor: "pointer" }}>View Pricing</button>
             </div>
@@ -304,9 +304,9 @@ export default async function LandingPage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer style={{ borderTop: "1px solid var(--border)", padding: "48px 32px", background: "white" }}>
+      <footer className="mobile-px mobile-py" style={{ borderTop: "1px solid var(--border)", padding: "48px 32px", background: "white" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 48, marginBottom: 48 }}>
+          <div className="mobile-col-2 mobile-auto-h" style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 48, marginBottom: 48 }}>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg, var(--primary-dark), var(--primary-light))", display: "flex", alignItems: "center", justifyContent: "center" }}><Zap size={14} color="white" fill="white" /></div>
@@ -327,7 +327,7 @@ export default async function LandingPage() {
               </div>
             ))}
           </div>
-          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div className="mobile-flex-col" style={{ borderTop: "1px solid var(--border)", paddingTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center", gap: "20px" }}>
             <span style={{ color: "var(--text-3)", fontSize: 12 }}>© 2024 IntelliCourse. AI-Driven Excellence.</span>
             <div style={{ display: "flex", gap: 20 }}>{[Globe, Shield, BookOpen].map((Icon, i) => <Icon key={i} size={16} color="var(--text-3)" style={{ cursor: "pointer" }} />)}</div>
           </div>

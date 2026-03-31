@@ -103,7 +103,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
       <Navbar />
 
       {/* ── HERO HEADER ── */}
-      <div className="hero-section" style={{
+      <div className="hero-section mobile-px mobile-py" style={{
         borderBottom: "1px solid rgba(255,255,255,0.15)",
         padding: "56px 32px 48px",
         position: "relative",
@@ -112,7 +112,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
         <div style={{ position: "absolute", top: -100, right: -100, width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)" }} />
         <div style={{ position: "absolute", bottom: -50, left: "30%", width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%)" }} />
 
-        <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 340px", gap: 48, position: "relative" }}>
+        <div className="mobile-col-1 mobile-flex-col mobile-auto-h" style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 340px", gap: 48, position: "relative" }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, fontSize: 13, color: "rgba(255,255,255,0.7)" }}>
               <Link href="/" style={{ color: "rgba(255,255,255,0.7)", textDecoration: "none" }}>Home</Link>
@@ -250,7 +250,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
       </div>
 
       {/* ── BODY ── */}
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "48px 32px", display: "grid", gridTemplateColumns: "1fr 340px", gap: 48 }}>
+      <div className="mobile-px mobile-py mobile-col-1 mobile-flex-col mobile-auto-h" style={{ maxWidth: 1200, margin: "0 auto", padding: "48px 32px", display: "grid", gridTemplateColumns: "1fr 340px", gap: 48 }}>
         <div>
 
           <section style={{ marginBottom: 48 }}>
@@ -268,7 +268,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
           {(course.outcomes?.length ?? 0) > 0 && (
             <section style={{ marginBottom: 48 }}>
               <h2 style={{ fontSize: 24, marginBottom: 20 }}>What You Will Master</h2>
-              <div style={{
+              <div className="mobile-col-1 mobile-flex-col" style={{
                 background: "white", border: "1px solid var(--border)", borderRadius: 16, padding: "28px",
                 display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, boxShadow: "0 1px 4px rgba(15,23,42,0.05)",
               }}>

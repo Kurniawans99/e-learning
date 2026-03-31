@@ -79,7 +79,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div style={{
+    <div className="mobile-col-1 mobile-flex-col" style={{
       minHeight: "100vh",
       background: "var(--bg-base)",
       display: "grid",
@@ -87,7 +87,7 @@ export default function AuthPage() {
     }}>
 
       {/* ── LEFT PANEL — Form ── */}
-      <div style={{
+      <div className="mobile-px mobile-py mobile-auto-h" style={{
         display: "flex", flexDirection: "column", padding: "48px 64px",
         background: "white", borderRight: "1px solid var(--border)",
         position: "relative", boxShadow: "4px 0 24px rgba(15,23,42,0.04)",
@@ -242,7 +242,7 @@ export default function AuthPage() {
       </div>
 
       {/* ── RIGHT PANEL — Blue Showcase ── */}
-      <div className="hero-section" style={{
+      <div className="hero-section mobile-hide" style={{
         display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center",
         padding: "64px", position: "relative", overflow: "hidden",
       }}>
@@ -302,9 +302,9 @@ export default function AuthPage() {
         </div>
       </div>
 
-      <div style={{
+      <div className="mobile-px mobile-py mobile-flex-col" style={{
         gridColumn: "1 / -1", borderTop: "1px solid var(--border)", padding: "16px 64px", background: "white",
-        display: "flex", justifyContent: "space-between", alignItems: "center",
+        display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16
       }}>
         <span style={{ color: "var(--text-3)", fontSize: 12 }}>© 2024 IntelliCourse. AI-Driven Excellence.</span>
         <div style={{ display: "flex", gap: 24 }}>

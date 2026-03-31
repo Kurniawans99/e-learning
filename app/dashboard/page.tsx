@@ -60,10 +60,10 @@ export default async function DashboardPage() {
       {/* Navbar imported from client so we don't have to duplicate */}
       <DashboardInteractive user={user} />
 
-      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", minHeight: "calc(100vh - 64px)" }}>
+      <div className="mobile-col-1 mobile-auto-h" style={{ display: "grid", gridTemplateColumns: "220px 1fr", minHeight: "calc(100vh - 64px)" }}>
 
         {/* ── SIDEBAR ── */}
-        <aside style={{
+        <aside className="mobile-hide" style={{
           background: "white", borderRight: "1px solid var(--border)", padding: "24px 16px",
           display: "flex", flexDirection: "column", position: "sticky", top: 64,
           height: "calc(100vh - 64px)", overflowY: "auto", boxShadow: "2px 0 12px rgba(15,23,42,0.04)",
@@ -104,11 +104,11 @@ export default async function DashboardPage() {
         </aside>
 
         {/* ── MAIN CONTENT ── */}
-        <main style={{ padding: "32px", overflowY: "auto", background: "var(--bg-base)" }}>
+        <main className="mobile-px mobile-py" style={{ padding: "32px", overflowY: "auto", background: "var(--bg-base)" }}>
           <div style={{ maxWidth: 1100, margin: "0 auto" }}>
 
             {/* Welcome + Velocity */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 24, alignItems: "start", marginBottom: 40 }}>
+            <div className="mobile-col-1 mobile-flex-col" style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 24, alignItems: "start", marginBottom: 40 }}>
               <div>
                 <div style={{ fontSize: 12, color: "var(--primary)", fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.06em", marginBottom: 8, textTransform: "uppercase" }}>WELCOME BACK, {firstName} 👋</div>
                 <h1 style={{ fontSize: "clamp(24px, 3vw, 36px)", marginBottom: 12, color: "var(--text-1)" }}>Cultivating your<br />expertise today.</h1>
@@ -135,7 +135,7 @@ export default async function DashboardPage() {
             </div>
 
             {/* Quick stats - Empty states for new user */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 36 }}>
+            <div className="mobile-col-2" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 36 }}>
               {[
                 { icon: Flame, label: "Day Streak", value: "0", color: "#F59E0B", bg: "#FFFBEB", sub: "Start learning today!" },
                 { icon: Clock, label: "Hours This Week", value: "0", color: "#0EA5E9", bg: "#F0F9FF", sub: "No activity yet" },
@@ -156,7 +156,7 @@ export default async function DashboardPage() {
             </div>
 
             {/* Recommendations + Skills */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 24, marginBottom: 40 }}>
+            <div className="mobile-col-1 mobile-flex-col" style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 24, marginBottom: 40 }}>
               
               {/* Recommendations */}
               <section>
