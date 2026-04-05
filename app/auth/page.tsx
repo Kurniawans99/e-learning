@@ -33,26 +33,34 @@ export default function AuthPage() {
 
     try {
       if (tab === "register") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password: password.trim(),
           options: {
             data: {
-              full_name: name,
+              full_name: name.trim(),
             },
             emailRedirectTo: `${window.location.origin}/auth/callback`,
           },
         });
         if (error) throw error;
-        setErrorMsg("Success! Check your email for a confirmation link.");
+        
+        if (data?.session) {
+           router.refresh();
+           router.push("/dashboard");
+        } else {
+           setErrorMsg("Success! Please sign in to continue.");
+           setTab("login");
+           setPassword("");
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: email.trim(),
+          password: password.trim(),
         });
         if (error) throw error;
-        router.push("/dashboard");
         router.refresh(); // Refresh to catch new cookies in middleware
+        router.push("/dashboard");
       }
     } catch (error: any) {
       setErrorMsg(error.message || "An error occurred during authentication.");

@@ -39,8 +39,7 @@ export async function middleware(request: NextRequest) {
   const isDashboardRoute = request.nextUrl.pathname.startsWith("/dashboard");
 
   if (isDashboardRoute && !user) {
-    // TIPS: Aktifkan kembali baris ini nanti jika ingin membatasi dashboard hanya untuk user yang sudah login.
-    // return NextResponse.redirect(new URL("/auth", request.url));
+    return NextResponse.redirect(new URL("/auth", request.url));
   }
 
   if (isAuthRoute && user) {
