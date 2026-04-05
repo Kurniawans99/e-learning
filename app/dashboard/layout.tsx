@@ -10,6 +10,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect("/auth");
   }
 
+  // Check onboarding completion
+  const { data: prefs, error: prefsError } = await supabase
+    .from("user_preferences")
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+
+  if (!prefs) {
+    console.warn("Dashboard Layout: No user_preferences found or error occurred, redirecting to /onboarding.", prefsError);
+    redirect("/onboarding");
+  }
+
   const userName = user.user_metadata?.full_name || user.email?.split("@")[0] || "Learner";
   const userEmail = user.email || "";
   const userInitial = userName.charAt(0).toUpperCase();

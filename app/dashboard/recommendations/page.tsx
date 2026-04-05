@@ -1,52 +1,115 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { createServerSupabaseClient } from "@/lib/supabase-server";
-import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase";
 import {
   Sparkles, Clock, BarChart2, Star, ArrowRight,
-  BookOpen, Users, TrendingUp, Zap
+  BookOpen, Users, TrendingUp, Zap, Brain, Loader2
 } from "lucide-react";
+
+type CourseData = {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle: string;
+  category: string;
+  level: string;
+  hours: number;
+  rating: number;
+  student_count: number;
+  instructors?: { name: string } | null;
+};
+
+type Recommendation = {
+  course_id: string;
+  match_score: number;
+  reason: string;
+};
 
 function categoryColor(category: string): string {
   const map: Record<string, string> = {
-    "AI & ML": "var(--primary)",
-    "Engineering": "var(--cyan)",
-    "Design": "var(--amber)",
-    "Web3": "var(--emerald)",
+    "AI & ML": "#7C3AED",
+    "Engineering": "#0EA5E9",
+    "Design": "#F59E0B",
+    "Web3": "#10B981",
+    "Web Development": "#2563EB",
+    "Game Development": "#DC2626",
+    "Data Science": "#059669",
   };
   return map[category] ?? "var(--primary)";
 }
 
 function categoryBadge(category: string) {
   const colors: Record<string, { bg: string; color: string; border: string }> = {
-    "AI & ML": { bg: "var(--primary-subtle)", color: "var(--primary)", border: "rgba(37,99,235,0.2)" },
+    "AI & ML": { bg: "#F5F3FF", color: "#7C3AED", border: "rgba(124,58,237,0.2)" },
     "Engineering": { bg: "#F0F9FF", color: "#0EA5E9", border: "rgba(14,165,233,0.2)" },
     "Design": { bg: "#FFFBEB", color: "#F59E0B", border: "rgba(245,158,11,0.2)" },
     "Web3": { bg: "#ECFDF5", color: "#10B981", border: "rgba(16,185,129,0.2)" },
+    "Web Development": { bg: "#EFF6FF", color: "#2563EB", border: "rgba(37,99,235,0.2)" },
+    "Game Development": { bg: "#FEF2F2", color: "#DC2626", border: "rgba(220,38,38,0.2)" },
+    "Data Science": { bg: "#ECFDF5", color: "#059669", border: "rgba(5,150,105,0.2)" },
   };
   return colors[category] ?? { bg: "var(--bg-base)", color: "var(--text-2)", border: "var(--border)" };
 }
 
-export default async function RecommendationsPage() {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
+export default function RecommendationsPage() {
+  const supabase = createClient();
+  const [courses, setCourses] = useState<CourseData[]>([]);
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [enrolledIds, setEnrolledIds] = useState<Set<string>>(new Set());
+  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [loadingAI, setLoadingAI] = useState(true);
 
-  if (!user) {
-    redirect("/auth");
-  }
+  useEffect(() => {
+    async function fetchData() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-  // Fetch all courses as recommendations
-  const { data: courses } = await supabase
-    .from("courses")
-    .select("*, instructors(name)")
-    .order("rating", { ascending: false });
+      // Fetch courses
+      const { data: coursesData } = await supabase
+        .from("courses")
+        .select("id, slug, title, subtitle, category, level, hours, rating, student_count, instructors(name)")
+        .order("rating", { ascending: false });
 
-  // Fetch enrolled course IDs to mark them
-  const { data: enrollments } = await supabase
-    .from("user_enrollments")
-    .select("course_id")
-    .eq("user_id", user.id);
+      if (coursesData) setCourses(coursesData as unknown as CourseData[]);
 
-  const enrolledIds = new Set(enrollments?.map(e => e.course_id) ?? []);
+      // Fetch enrolled
+      const { data: enrollments } = await supabase
+        .from("user_enrollments")
+        .select("course_id")
+        .eq("user_id", user.id);
+
+      if (enrollments) setEnrolledIds(new Set(enrollments.map(e => e.course_id)));
+      setLoadingCourses(false);
+
+      // Fetch AI recommendations
+      try {
+        const res = await fetch("/api/ai/recommend");
+        const data = await res.json();
+        if (data.recommendations) {
+          setRecommendations(data.recommendations);
+        }
+      } catch {
+        // Fallback: no AI recommendations
+      }
+      setLoadingAI(false);
+    }
+    fetchData();
+  }, []);
+
+  // Merge course data with AI recommendations
+  const getRecoForCourse = (courseId: string) => recommendations.find(r => r.course_id === courseId);
+
+  // Sort courses by AI recommendation score if available
+  const sortedCourses = [...courses].sort((a, b) => {
+    const recoA = getRecoForCourse(a.id);
+    const recoB = getRecoForCourse(b.id);
+    if (recoA && recoB) return recoB.match_score - recoA.match_score;
+    if (recoA) return -1;
+    if (recoB) return 1;
+    return b.rating - a.rating;
+  });
 
   return (
     <>
@@ -58,15 +121,15 @@ export default async function RecommendationsPage() {
         </div>
         <h1 style={{ fontSize: "clamp(24px, 3vw, 36px)", marginBottom: 12, color: "var(--text-1)" }}>Recommendations</h1>
         <p style={{ color: "var(--text-2)", fontSize: 15, lineHeight: 1.6, maxWidth: 560 }}>
-          Courses curated for your learning goals, skill level, and interests. Our AI analyzes your progress to surface the most relevant content.
+          Kursus yang dipilih khusus untuk Anda berdasarkan profil belajar, level pengalaman, dan minat Anda. AI kami menganalisis progress Anda untuk memunculkan konten paling relevan.
         </p>
       </div>
 
-      {/* Highlight banner */}
+      {/* AI Status banner */}
       <div style={{
-        background: "linear-gradient(135deg, #1E40AF, #2563EB, #3B82F6)",
-        borderRadius: 16, padding: "28px 32px", marginBottom: 32,
-        display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap",
+        background: "linear-gradient(135deg, #1E40AF, #7C3AED)",
+        borderRadius: 16, padding: "24px 28px", marginBottom: 32,
+        display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap",
         position: "relative", overflow: "hidden",
       }}>
         <div style={{
@@ -74,41 +137,62 @@ export default async function RecommendationsPage() {
           borderRadius: "50%", background: "rgba(255,255,255,0.08)", pointerEvents: "none",
         }} />
         <div style={{
-          width: 52, height: 52, borderRadius: 14,
+          width: 48, height: 48, borderRadius: 14,
           background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.3)",
           display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
         }}>
-          <Zap size={24} color="white" fill="white" />
+          <Brain size={22} color="white" />
         </div>
         <div style={{ flex: 1, minWidth: 200 }}>
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: "white", marginBottom: 6 }}>Personalized for You</h3>
-          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", lineHeight: 1.5 }}>
-            Based on your profile and learning history, we've selected courses that match your trajectory. Match scores reflect content alignment with your goals.
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: "white", marginBottom: 4 }}>
+            {loadingAI ? "AI sedang menganalisis profil Anda..." : "Dipersonalisasi oleh Gemini AI"}
+          </h3>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.75)", lineHeight: 1.5 }}>
+            {loadingAI
+              ? "Mohon tunggu sebentar sementara AI kami menyesuaikan rekomendasi."
+              : `${recommendations.length} kursus direkomendasikan berdasarkan spesialisasi dan tujuan belajar Anda.`}
           </p>
         </div>
-        <div style={{
-          background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.25)",
-          borderRadius: 12, padding: "14px 20px", textAlign: "center", backdropFilter: "blur(8px)",
-        }}>
-          <div style={{ fontSize: 28, fontWeight: 800, color: "white", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{courses?.length || 0}</div>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.7)", textTransform: "uppercase", fontWeight: 600 }}>Curated Courses</div>
-        </div>
+        {loadingAI && (
+          <Loader2 size={24} color="white" style={{ animation: "spin 1s linear infinite" }} />
+        )}
+        {!loadingAI && (
+          <div style={{
+            background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.25)",
+            borderRadius: 12, padding: "12px 18px", textAlign: "center", backdropFilter: "blur(8px)",
+          }}>
+            <div style={{ fontSize: 24, fontWeight: 800, color: "white", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{sortedCourses.length}</div>
+            <div style={{ fontSize: 9, color: "rgba(255,255,255,0.7)", textTransform: "uppercase", fontWeight: 600 }}>Tersedia</div>
+          </div>
+        )}
       </div>
 
-      {/* Courses grid */}
-      {courses && courses.length > 0 ? (
+      {/* Loading state */}
+      {loadingCourses && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 20 }}>
-          {courses.map((course, index) => {
+          {[1,2,3,4,5,6].map(i => (
+            <div key={i} style={{ height: 260, borderRadius: 16, animation: "shimmer 1.5s infinite", backgroundImage: "linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)", backgroundSize: "200% 100%" }} />
+          ))}
+        </div>
+      )}
+
+      {/* Courses grid */}
+      {!loadingCourses && sortedCourses.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 20 }}>
+          {sortedCourses.map((course, index) => {
+            const reco = getRecoForCourse(course.id);
             const color = categoryColor(course.category);
             const badge = categoryBadge(course.category);
             const isEnrolled = enrolledIds.has(course.id);
-            const matchScore = Math.max(88, 99 - index * 3);
+            const matchScore = reco?.match_score ?? null;
+            const reason = reco?.reason ?? null;
+
             return (
               <Link key={course.id} href={`/courses/${course.slug}`} style={{ textDecoration: "none" }}>
                 <div className="card-hover" style={{
-                  background: "white", border: `1px solid ${isEnrolled ? "rgba(16,185,129,0.3)" : "var(--border)"}`,
+                  background: "white", border: `1px solid ${isEnrolled ? "rgba(16,185,129,0.3)" : reco ? `${color}30` : "var(--border)"}`,
                   borderRadius: 16, padding: 0, overflow: "hidden",
-                  boxShadow: "0 1px 4px rgba(15,23,42,0.04)",
+                  boxShadow: reco ? `0 2px 12px ${color}12` : "0 1px 4px rgba(15,23,42,0.04)",
                   position: "relative",
                 }}>
                   {/* Top color strip */}
@@ -120,9 +204,7 @@ export default async function RecommendationsPage() {
                       padding: "3px 8px", borderRadius: 6, fontSize: 9,
                       fontWeight: 700, background: "#ECFDF5", color: "#10B981",
                       border: "1px solid rgba(16,185,129,0.2)", textTransform: "uppercase",
-                    }}>
-                      Enrolled
-                    </div>
+                    }}>Enrolled</div>
                   )}
 
                   <div style={{ padding: "20px 20px 16px" }}>
@@ -131,22 +213,33 @@ export default async function RecommendationsPage() {
                       <span style={{
                         padding: "3px 10px", borderRadius: 99, fontSize: 11, fontWeight: 600,
                         background: badge.bg, color: badge.color, border: `1px solid ${badge.border}`,
-                      }}>
-                        {course.category}
-                      </span>
-                      <div style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif", color }}>{matchScore}%</div>
-                        <div style={{ fontSize: 8, color: "var(--text-3)", fontWeight: 600, textTransform: "uppercase" }}>Match</div>
-                      </div>
+                      }}>{course.category}</span>
+                      {matchScore !== null && (
+                        <div style={{ textAlign: "center" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <Brain size={12} color={color} />
+                            <span style={{ fontSize: 18, fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif", color }}>{matchScore}%</span>
+                          </div>
+                          <div style={{ fontSize: 8, color: "var(--text-3)", fontWeight: 600, textTransform: "uppercase" }}>AI Match</div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Title */}
-                    <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6, color: "var(--text-1)", lineHeight: 1.3 }}>
-                      {course.title}
-                    </h3>
-                    <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 14, lineHeight: 1.5 }}>
-                      {course.subtitle}
-                    </p>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6, color: "var(--text-1)", lineHeight: 1.3 }}>{course.title}</h3>
+                    <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 10, lineHeight: 1.5 }}>{course.subtitle}</p>
+
+                    {/* AI Reason */}
+                    {reason && (
+                      <div style={{
+                        background: `${color}08`, border: `1px solid ${color}20`,
+                        borderRadius: 10, padding: "8px 12px", marginBottom: 12,
+                        display: "flex", gap: 6, alignItems: "flex-start",
+                      }}>
+                        <Sparkles size={12} color={color} style={{ flexShrink: 0, marginTop: 2 }} />
+                        <p style={{ fontSize: 11, color: "var(--text-2)", lineHeight: 1.5, margin: 0 }}>{reason}</p>
+                      </div>
+                    )}
 
                     {/* Meta */}
                     <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
@@ -164,22 +257,22 @@ export default async function RecommendationsPage() {
                       </span>
                     </div>
 
-                    {/* Instructor + CTA */}
+                    {/* CTA */}
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 14, borderTop: "1px solid var(--border)" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <div style={{
                           width: 26, height: 26, borderRadius: 8,
-                          background: "var(--primary-subtle)", display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: 10, fontWeight: 700, color: "var(--primary)",
+                          background: `${color}15`, display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 10, fontWeight: 700, color,
                         }}>
                           {course.instructors?.name?.charAt(0) || "?"}
                         </div>
                         <span style={{ fontSize: 12, color: "var(--text-2)", fontWeight: 500 }}>
-                          {course.instructors?.name || "Unknown Instructor"}
+                          {course.instructors?.name || "Instructor"}
                         </span>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--primary)", fontSize: 12, fontWeight: 600 }}>
-                        View <ArrowRight size={12} />
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, color, fontSize: 12, fontWeight: 600 }}>
+                        Lihat <ArrowRight size={12} />
                       </div>
                     </div>
                   </div>
@@ -188,24 +281,23 @@ export default async function RecommendationsPage() {
             );
           })}
         </div>
-      ) : (
+      )}
+
+      {/* Empty */}
+      {!loadingCourses && sortedCourses.length === 0 && (
         <div style={{
           textAlign: "center", padding: "64px 32px",
           background: "white", border: "1px dashed var(--border)", borderRadius: 16,
         }}>
-          <div style={{
-            width: 64, height: 64, borderRadius: 16, margin: "0 auto 20px",
-            background: "var(--primary-subtle)", border: "1px solid rgba(37,99,235,0.15)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <Sparkles size={28} color="var(--primary)" />
-          </div>
-          <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: "var(--text-1)" }}>No recommendations yet</h3>
-          <p style={{ color: "var(--text-2)", fontSize: 14, maxWidth: 400, margin: "0 auto" }}>
-            Our AI is still learning about your preferences. Check back soon!
-          </p>
+          <Sparkles size={28} color="var(--primary)" />
+          <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, marginTop: 16, color: "var(--text-1)" }}>Belum ada rekomendasi</h3>
+          <p style={{ color: "var(--text-2)", fontSize: 14 }}>AI kami masih mempelajari preferensi Anda. Cek kembali nanti!</p>
         </div>
       )}
+
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
     </>
   );
 }

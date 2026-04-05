@@ -7,6 +7,7 @@ import {
   Zap, Search, Bell, ChevronDown, User, Menu, X
 } from "lucide-react";
 import { useState } from "react";
+import AIChatWidget from "@/components/AIChatWidget";
 
 const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
@@ -39,7 +40,7 @@ export default function DashboardShell({ userName, userEmail, userInitial, child
         height: 64, display: "flex", alignItems: "center", justifyContent: "space-between",
         boxShadow: "0 1px 8px rgba(15,23,42,0.06)",
       }}>
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+        <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
           <div style={{
             width: 32, height: 32, borderRadius: 10,
             background: "linear-gradient(135deg, var(--primary-dark), var(--primary-light))",
@@ -247,6 +248,8 @@ export default function DashboardShell({ userName, userEmail, userInitial, child
           </div>
         </main>
       </div>
+      {/* AI Chat Widget */}
+      <AIChatWidget />
     </div>
   );
 }

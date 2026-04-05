@@ -88,3 +88,25 @@ export interface DBUser {
   headline: string | null;
   created_at: string;
 }
+
+export interface UserPreferences {
+  id: string;
+  user_id: string;
+  specializations: string[];
+  experience_level: "beginner" | "intermediate" | "advanced";
+  goals: string[];
+  known_languages: string[];
+  onboarding_completed: boolean;
+  ai_summary: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AIChatMessage {
+  id: string;
+  user_id: string;
+  course_id: string | null;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+}

@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import AIChatWidget from "@/components/AIChatWidget";
 import { createClient } from "@/lib/supabase";
 import type { Course } from "@/lib/types";
 import {
@@ -115,7 +116,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
         <div className="mobile-col-1 mobile-flex-col mobile-auto-h" style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 340px", gap: 48, position: "relative" }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, fontSize: 13, color: "rgba(255,255,255,0.7)" }}>
-              <Link href="/" style={{ color: "rgba(255,255,255,0.7)", textDecoration: "none" }}>Home</Link>
+              <Link href="/dashboard" style={{ color: "rgba(255,255,255,0.7)", textDecoration: "none" }}>Dashboard</Link>
               <ChevronRight size={12} />
               <Link href="#" style={{ color: "rgba(255,255,255,0.7)", textDecoration: "none" }}>Courses</Link>
               <ChevronRight size={12} />
@@ -429,6 +430,13 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
         </aside>
       </div>
 
+      {/* AI Chat contextual to this course */}
+      <AIChatWidget
+        courseId={course.id}
+        courseTitle={course.title}
+        courseCategory={course.category}
+        courseNarrative={course.narrative}
+      />
     </div>
   );
 }

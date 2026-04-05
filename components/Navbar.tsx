@@ -1,10 +1,31 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
-import { Search, Bell, ChevronDown, Zap, Menu, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Bell, ChevronDown, Zap, Menu, X, LayoutDashboard } from "lucide-react";
+import { createClient } from "@/lib/supabase";
 
 export default function Navbar({ variant = "default" }: { variant?: "default" | "dashboard" }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isAuth, setIsAuth] = useState<boolean | null>(null);
+  const [userName, setUserName] = useState<string>("");
+  const [userInitial, setUserInitial] = useState<string>("");
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        setIsAuth(true);
+        const name = session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "User";
+        setUserName(name.split(" ")[0]);
+        setUserInitial(name.charAt(0).toUpperCase());
+      } else {
+        setIsAuth(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
   return (
     <>
@@ -23,7 +44,7 @@ export default function Navbar({ variant = "default" }: { variant?: "default" | 
         boxShadow: "0 1px 8px rgba(15, 23, 42, 0.06)",
       }}>
         {/* Logo */}
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+        <Link href={isAuth ? "/dashboard" : "/"} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
           <div style={{
             width: 32, height: 32, borderRadius: 10,
             background: "linear-gradient(135deg, var(--primary-dark), var(--primary-light))",
@@ -102,9 +123,15 @@ export default function Navbar({ variant = "default" }: { variant?: "default" | 
                   fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700,
                   fontSize: 13, color: "white",
                   boxShadow: "0 4px 12px rgba(37, 99, 235, 0.3)",
-                }}>A</div>
-                <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, fontSize: 13, color: "var(--text-1)" }}>Alex</span>
+                }}>{userInitial || "A"}</div>
+                <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, fontSize: 13, color: "var(--text-1)" }}>{userName || "Alex"}</span>
                 <ChevronDown size={12} color="var(--text-3)" />
+              </Link>
+            </>
+          ) : isAuth ? (
+            <>
+              <Link href="/dashboard" className="btn-primary" style={{ fontSize: 14, padding: "8px 18px", display: "flex", alignItems: "center", gap: 6 }}>
+                <LayoutDashboard size={16} /> Go to Dashboard
               </Link>
             </>
           ) : (
@@ -185,11 +212,11 @@ export default function Navbar({ variant = "default" }: { variant?: "default" | 
 
               <div style={{ height: 1, background: "var(--border)", margin: "16px 0" }} />
 
-              {variant === "dashboard" ? (
+              {variant === "dashboard" || isAuth ? (
                 <Link href="/dashboard" onClick={() => setMobileOpen(false)} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 12, padding: "12px", background: "var(--bg-base)", borderRadius: 12, border: "1px solid var(--border)" }}>
-                  <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg, var(--primary-dark), var(--primary-light))", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 700 }}>A</div>
+                  <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg, var(--primary-dark), var(--primary-light))", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 700 }}>{userInitial || "A"}</div>
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text-1)" }}>Alex</div>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text-1)" }}>{userName || "Alex"}</div>
                     <div style={{ fontSize: 12, color: "var(--text-3)" }}>View Profile</div>
                   </div>
                 </Link>

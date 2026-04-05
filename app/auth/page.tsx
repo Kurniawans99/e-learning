@@ -47,7 +47,7 @@ export default function AuthPage() {
         
         if (data?.session) {
            router.refresh();
-           router.push("/dashboard");
+           router.push("/onboarding"); // New users go to onboarding
         } else {
            setErrorMsg("Success! Please sign in to continue.");
            setTab("login");
@@ -59,8 +59,22 @@ export default function AuthPage() {
           password: password.trim(),
         });
         if (error) throw error;
-        router.refresh(); // Refresh to catch new cookies in middleware
-        router.push("/dashboard");
+
+        // Check if user has completed onboarding
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: prefs } = await supabase
+            .from("user_preferences")
+            .select("id")
+            .eq("user_id", user.id)
+            .single();
+
+          router.refresh();
+          router.push(prefs ? "/dashboard" : "/onboarding");
+        } else {
+          router.refresh();
+          router.push("/dashboard");
+        }
       }
     } catch (error: any) {
       setErrorMsg(error.message || "An error occurred during authentication.");
