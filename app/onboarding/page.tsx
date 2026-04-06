@@ -9,6 +9,7 @@ import {
   Rocket, GraduationCap, Lightbulb, Briefcase,
   Code2, Database, Terminal, PenTool, Layers
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 const SPECIALIZATIONS = [
   { id: "web-development", label: "Web Development", icon: Globe, color: "#2563EB", bg: "#EFF6FF", desc: "React, Next.js, CSS, Full-Stack" },
@@ -110,16 +111,34 @@ export default function OnboardingPage() {
 - Tujuan belajar: ${selectedGoals.join(", ")}
 - Bahasa/tools yang dikuasai: ${selectedLangs.join(", ")}
 
-Buatkan ringkasan learning path yang dipersonalisasi untuk saya dalam 2-3 paragraf pendek. Jangan gunakan heading. Langsung mulai dengan sapaan yang friendly.`,
+Buatkan ringkasan learning path yang dipersonalisasi. Awali dengan 1 atau 2 paragraf pengantar singkat yang friendly dan menyemangati, lalu berikan poin-poin utama apa saja yang harus saya pelajari atau fokuskan menggunakan format Markdown list standar (bullet/numbers). Gunakan gaya bahasa yang profesional namun rileks.`,
           isOnboarding: true,
         }),
       });
-      const data = await res.json();
-      setAiSummary(data.reply || "Selamat datang! Learning path Anda sedang disiapkan...");
-    } catch {
-      setAiSummary("Selamat datang di IntelliCourse! Kami akan menyiapkan rekomendasi course yang sesuai dengan profil Anda. Mulai jelajahi dashboard untuk menemukan course terbaik!");
+      if (!res.ok) {
+        throw new Error("Failed to generate summary");
+      }
+
+      setLoadingSummary(false); // Stop loading indicator, start streaming
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("No reader available");
+      
+      const decoder = new TextDecoder();
+      let done = false;
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          const chunkStr = decoder.decode(value, { stream: true });
+          setAiSummary(prev => prev + chunkStr);
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      setAiSummary("Maaf, gagal memuat profil. Silakan mulai kelas pilihan Anda!");
+      setLoadingSummary(false);
     }
-    setLoadingSummary(false);
   };
 
   const savePreferences = async () => {
@@ -341,7 +360,19 @@ Buatkan ringkasan learning path yang dipersonalisasi untuk saya dalam 2-3 paragr
               AI sedang menganalisis profil Anda...
             </div>
           ) : (
-            <p style={{ color: "var(--text-2)", fontSize: 14, lineHeight: 1.8 }}>{aiSummary}</p>
+            <div style={{ color: "var(--text-2)", fontSize: 14, lineHeight: 1.8 }}>
+              <ReactMarkdown
+                components={{
+                  p: ({node, ...props}) => <p style={{ marginBottom: "12px" }} {...props} />,
+                  ul: ({node, ...props}) => <ul style={{ paddingLeft: "24px", marginBottom: "16px", listStyleType: "disc" }} {...props} />,
+                  ol: ({node, ...props}) => <ol style={{ paddingLeft: "24px", marginBottom: "16px", listStyleType: "decimal" }} {...props} />,
+                  li: ({node, ...props}) => <li style={{ marginBottom: "8px" }} {...props} />,
+                  strong: ({node, ...props}) => <strong style={{ color: "var(--text-1)", fontWeight: 700 }} {...props} />,
+                }}
+              >
+                {aiSummary}
+              </ReactMarkdown>
+            </div>
           )}
         </div>
 

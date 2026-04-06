@@ -3,7 +3,68 @@ import { GoogleGenAI } from "@google/genai";
 // Server-side only — never import this on the client
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
-export const GEMINI_MODEL = "gemini-2.5-flash";
+export const FALLBACK_MODELS = [
+  "gemini-2.5-flash",
+  "gemini-3-flash-preview",
+  "gemini-3.1-flash-lite-preview",
+  "gemini-2.0-flash",
+  "gemini-flash-latest"
+];
+
+export const GEMINI_MODEL = FALLBACK_MODELS[0];
+
+export async function generateContentWithFallback(request: any) {
+  let lastError: any = null;
+  let rateLimitError: any = null;
+  for (const model of FALLBACK_MODELS) {
+    try {
+      console.log(`[AI] Mencoba generate dengan model: ${model}`);
+      const updatedRequest = { ...request, model };
+      const response = await ai.models.generateContent(updatedRequest);
+      return response;
+    } catch (error: any) {
+      console.warn(`[AI] Model ${model} gagal:`, error?.message || "Unknown error");
+      lastError = error;
+      if (error?.status === 429 || error?.message?.includes("429") || error?.message?.includes("Quota")) {
+        rateLimitError = error;
+      }
+    }
+  }
+  throw rateLimitError || lastError;
+}
+
+export async function generateContentStreamWithFallback(request: any) {
+  let lastError: any = null;
+  let rateLimitError: any = null;
+  for (const model of FALLBACK_MODELS) {
+    try {
+      console.log(`[AI Stream] Mencoba generate stream dengan model: ${model}`);
+      const updatedRequest = { ...request, model };
+      const responseStream = await ai.models.generateContentStream(updatedRequest);
+
+      // Test the stream by fetching the first chunk. 
+      // This catches 429 (Rate Limit) and 404 (Not Found) errors that might delay throwing.
+      const iterator = responseStream[Symbol.asyncIterator]();
+      const firstChunk = await iterator.next();
+
+      // If we reach here, the model is valid and not rate-limited.
+      async function* wrappedStream() {
+        if (!firstChunk.done) {
+          yield firstChunk.value;
+        }
+        yield* iterator;
+      }
+      return wrappedStream();
+    } catch (error: any) {
+      console.warn(`[AI Stream] Model ${model} gagal:`, error?.message || "Unknown error");
+      lastError = error;
+      if (error?.status === 429 || error?.message?.includes("429") || error?.message?.includes("Quota")) {
+        rateLimitError = error;
+      }
+    }
+  }
+  throw rateLimitError || lastError;
+}
 
 export const SYSTEM_PROMPT_TUTOR = `Kamu adalah IntelliCourse AI, asisten belajar cerdas di platform e-learning IntelliCourse.
 

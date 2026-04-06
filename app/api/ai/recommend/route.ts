@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ai, GEMINI_MODEL, SYSTEM_PROMPT_RECOMMEND } from "@/lib/gemini";
+import { ai, GEMINI_MODEL, SYSTEM_PROMPT_RECOMMEND, generateContentWithFallback } from "@/lib/gemini";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 
 export async function GET(req: NextRequest) {
@@ -69,8 +69,7 @@ Analisis profil user dan berikan rekomendasi course yang paling cocok. Output JS
 
     let recommendations = [];
     try {
-      const response = await ai.models.generateContent({
-        model: GEMINI_MODEL,
+      const response = await generateContentWithFallback({
         contents: prompt,
         config: {
           systemInstruction: SYSTEM_PROMPT_RECOMMEND,

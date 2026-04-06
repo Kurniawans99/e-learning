@@ -5,6 +5,7 @@ import {
   MessageSquare, X, Send, Sparkles, Trash2,
   Bot, User, Minimize2, Maximize2
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 interface AIChatWidgetProps {
   courseId?: string;
@@ -26,8 +27,40 @@ export default function AIChatWidget({ courseId, courseTitle, courseCategory, co
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch chat history
+  useEffect(() => {
+    if (!isOpen || messages.length > 0) return;
+
+    const fetchHistory = async () => {
+      setLoadingHistory(true);
+      try {
+        const url = courseId ? `/api/ai/chat?courseId=${courseId}` : "/api/ai/chat";
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            const historyMessages: ChatMessage[] = data.map((d: any) => ({
+              id: d.id,
+              role: d.role,
+              content: d.content,
+              timestamp: new Date(d.created_at),
+            }));
+            setMessages(historyMessages);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch chat history", err);
+      } finally {
+        setLoadingHistory(false);
+      }
+    };
+
+    fetchHistory();
+  }, [isOpen, courseId, messages.length]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -66,14 +99,47 @@ export default function AIChatWidget({ courseId, courseTitle, courseCategory, co
         }),
       });
 
-      const data = await res.json();
-      const aiMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+      if (!res.ok) {
+         // handle 429
+         if (res.status === 429) {
+            setMessages(prev => [...prev, {
+              id: (Date.now() + 1).toString(),
+              role: "assistant",
+              content: "Maaf, batas penggunaan AI saat ini telah habis. Coba lagi nanti ya! ⏳",
+              timestamp: new Date(),
+            }]);
+            setLoading(false);
+            return;
+         }
+         throw new Error("Failed to fetch");
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("No reader");
+
+      const decoder = new TextDecoder();
+      const aiMsgId = (Date.now() + 1).toString();
+
+      // Initiate empty message shell
+      setMessages(prev => [...prev, {
+        id: aiMsgId,
         role: "assistant",
-        content: data.reply || "Maaf, saya tidak bisa menjawab saat ini.",
+        content: "",
         timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, aiMsg]);
+      }]);
+      setLoading(false); // Stop typing indicator since stream started
+
+      let done = false;
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          const chunkStr = decoder.decode(value, { stream: true });
+          setMessages(prev => prev.map(msg => 
+            msg.id === aiMsgId ? { ...msg, content: msg.content + chunkStr } : msg
+          ));
+        }
+      }
     } catch {
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
@@ -81,8 +147,9 @@ export default function AIChatWidget({ courseId, courseTitle, courseCategory, co
         content: "Maaf, terjadi gangguan koneksi. Coba lagi nanti ya! 🙏",
         timestamp: new Date(),
       }]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const clearChat = () => {
@@ -208,7 +275,12 @@ export default function AIChatWidget({ courseId, courseTitle, courseCategory, co
             display: "flex", flexDirection: "column", gap: 12,
             background: "var(--bg-base)",
           }}>
-            {messages.length === 0 && (
+            {loadingHistory ? (
+              <div style={{ textAlign: "center", padding: "40px 20px" }}>
+                <span className="typing-dot" style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--primary)", animation: "textPulse 1s infinite alternate" }} />
+                <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 12 }}>Memuat riwayat chat...</div>
+              </div>
+            ) : messages.length === 0 ? (
               <div style={{ textAlign: "center", padding: "40px 20px" }}>
                 <div style={{
                   width: 52, height: 52, borderRadius: 16, margin: "0 auto 16px",
@@ -259,7 +331,7 @@ export default function AIChatWidget({ courseId, courseTitle, courseCategory, co
                   ))}
                 </div>
               </div>
-            )}
+            ) : null}
 
             {messages.map(msg => (
               <div key={msg.id} style={{
@@ -286,9 +358,24 @@ export default function AIChatWidget({ courseId, courseTitle, courseCategory, co
                   borderRadius: msg.role === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
                   padding: "10px 14px", fontSize: 13, lineHeight: 1.6,
                   boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-                  whiteSpace: "pre-wrap",
-                }}>
-                  {msg.content}
+                  overflowWrap: "break-word",
+                  wordBreak: "break-word",
+                }} className="markdown-chat">
+                  <ReactMarkdown
+                    components={{
+                      p: ({node, ...props}) => <p style={{ margin: "0 0 8px 0" }} {...props} />,
+                      ul: ({node, ...props}) => <ul style={{ paddingLeft: "20px", marginBottom: "8px", listStyleType: "disc" }} {...props} />,
+                      ol: ({node, ...props}) => <ol style={{ paddingLeft: "20px", marginBottom: "8px", listStyleType: "decimal" }} {...props} />,
+                      li: ({node, ...props}) => <li style={{ marginBottom: "4px" }} {...props} />,
+                      strong: ({node, ...props}) => <strong style={{ fontWeight: 700 }} {...props} />,
+                      code: ({node, inline, ...props}: any) => 
+                        inline 
+                          ? <code style={{ background: "rgba(0,0,0,0.08)", padding: "2px 4px", borderRadius: "4px", fontSize: "0.9em", fontFamily: "monospace" }} {...props} />
+                          : <code style={{ display: "block", background: "var(--bg-base)", padding: "8px", borderRadius: "8px", overflowX: "auto", fontSize: "0.9em", border: "1px solid var(--border)", marginBottom: "8px", fontFamily: "monospace" }} {...props} />
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
                 </div>
               </div>
             ))}
