@@ -146,6 +146,7 @@ Buatkan ringkasan learning path yang dipersonalisasi. Awali dengan 1 atau 2 para
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    // 1. Simpan data standard ke Supabase (Kodingan asli tim lo)
     const { error } = await supabase.from("user_preferences").upsert({
       user_id: user.id,
       specializations: selectedSpecs,
@@ -163,7 +164,27 @@ Buatkan ringkasan learning path yang dipersonalisasi. Awali dengan 1 atau 2 para
       return;
     }
 
-    router.refresh(); // Panggil refresh sebelum push agar cache server diperbarui
+    // 2. KODINGAN LO: Kirim data ke Gemini API (route.ts buatan lo) buat dijadiin Vektor Rekomendasi
+    try {
+      console.log("Sedang membuat vektor AI...");
+      const userContextText = `Spesialisasi: ${selectedSpecs.join(", ")}, Level: ${selectedLevel}, Tujuan: ${selectedGoals.join(", ")}, Tools: ${selectedLangs.join(", ")}`;
+      
+      await fetch('/api/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          answers: userContextText
+        })
+      });
+      console.log("Vektor AI berhasil dibuat!");
+    } catch (err) {
+      console.error("Gagal nyambung ke Gemini API:", err);
+      // Nggak perlu di-return/dibatalkan, biarin user tetep masuk dashboard
+    }
+
+    // 3. Redirect ke Dashboard
+    router.refresh(); 
     router.push("/dashboard");
   };
 
