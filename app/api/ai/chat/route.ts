@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
       contents,
       config: {
         systemInstruction: systemPrompt,
-        maxOutputTokens: 1024,
+        maxOutputTokens: 4096, // Ditingkatkan agar jawaban AI tidak terpotong (sebelumnya 1024)
         temperature: 0.7,
       },
     });

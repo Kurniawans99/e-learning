@@ -73,7 +73,7 @@ Analisis profil user dan berikan rekomendasi course yang paling cocok. Output JS
         contents: prompt,
         config: {
           systemInstruction: SYSTEM_PROMPT_RECOMMEND,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 4096, // Ditingkatkan agar jawaban AI tidak terpotong
           temperature: 0.4,
         },
       });
