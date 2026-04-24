@@ -4,31 +4,78 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, BookOpen, Trophy, Sparkles, Settings,
-  Zap, Search, Bell, ChevronDown, User, Menu, X
+  Zap, Search, Bell, ChevronDown, User, Menu, X,
+  Users, PlusCircle, BarChart2, GraduationCap, Shield, FileText
 } from "lucide-react";
 import { useState } from "react";
 import AIChatWidget from "@/components/AIChatWidget";
+import type { UserRole } from "@/lib/types";
+import { getRoleLabel, getRoleColor } from "@/lib/auth-helpers";
 
-const SIDEBAR_ITEMS = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-  { icon: BookOpen, label: "My Courses", href: "/dashboard/my-courses" },
-  { icon: Trophy, label: "Achievements", href: "/dashboard/achievements" },
-  { icon: Sparkles, label: "Recommendations", href: "/dashboard/recommendations", badge: 3 },
-  { icon: User, label: "Profile", href: "/dashboard/profile" },
-  { icon: Settings, label: "Settings", href: "/dashboard/settings" },
-];
+type SidebarItem = {
+  icon: any;
+  label: string;
+  href: string;
+  badge?: number;
+};
+
+function getSidebarItems(role: UserRole): { main: SidebarItem[]; label: string } {
+  switch (role) {
+    case "admin":
+      return {
+        label: "ADMIN PANEL",
+        main: [
+          { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
+          { icon: Users, label: "User Management", href: "/dashboard/admin/users" },
+          { icon: BookOpen, label: "All Courses", href: "/dashboard/admin/courses" },
+          { icon: BarChart2, label: "Analytics", href: "/dashboard/admin/analytics" },
+          { icon: User, label: "Profile", href: "/dashboard/profile" },
+          { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+        ],
+      };
+    case "teacher":
+      return {
+        label: "TEACHER PANEL",
+        main: [
+          { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
+          { icon: BookOpen, label: "My Courses", href: "/dashboard/teacher/courses" },
+          { icon: PlusCircle, label: "Create Course", href: "/dashboard/teacher/create-course" },
+          { icon: GraduationCap, label: "Students", href: "/dashboard/teacher/students" },
+          { icon: User, label: "Profile", href: "/dashboard/profile" },
+          { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+        ],
+      };
+    case "student":
+    default:
+      return {
+        label: "MENU",
+        main: [
+          { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
+          { icon: BookOpen, label: "My Courses", href: "/dashboard/my-courses" },
+          { icon: Trophy, label: "Achievements", href: "/dashboard/achievements" },
+          { icon: Sparkles, label: "Recommendations", href: "/dashboard/recommendations", badge: 3 },
+          { icon: User, label: "Profile", href: "/dashboard/profile" },
+          { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+        ],
+      };
+  }
+}
 
 interface DashboardShellProps {
   userName: string;
   userEmail: string;
   userInitial: string;
+  userRole: UserRole;
   children: React.ReactNode;
 }
 
-export default function DashboardShell({ userName, userEmail, userInitial, children }: DashboardShellProps) {
+export default function DashboardShell({ userName, userEmail, userInitial, userRole, children }: DashboardShellProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const firstName = userName.split(" ")[0];
+  const { main: SIDEBAR_ITEMS, label: sidebarLabel } = getSidebarItems(userRole);
+  const roleColor = getRoleColor(userRole);
+  const roleLabel = getRoleLabel(userRole);
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-base)" }}>
@@ -110,7 +157,15 @@ export default function DashboardShell({ userName, userEmail, userInitial, child
               fontSize: 13, color: "white",
               boxShadow: "0 4px 12px rgba(37,99,235,0.3)",
             }}>{userInitial}</div>
-            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, fontSize: 13, color: "var(--text-1)" }}>{firstName}</span>
+            <div>
+              <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600, fontSize: 13, color: "var(--text-1)", display: "block", lineHeight: 1.2 }}>{firstName}</span>
+              <span style={{
+                fontSize: 10, fontWeight: 700, color: roleColor.text,
+                background: roleColor.bg, border: `1px solid ${roleColor.border}`,
+                borderRadius: 99, padding: "1px 7px", display: "inline-block", marginTop: 2,
+                fontFamily: "'Plus Jakarta Sans', sans-serif", textTransform: "uppercase", letterSpacing: "0.03em",
+              }}>{roleLabel}</span>
+            </div>
             <ChevronDown size={12} color="var(--text-3)" />
           </Link>
         </div>
@@ -155,7 +210,16 @@ export default function DashboardShell({ userName, userEmail, userInitial, child
             </div>
 
             <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 4, overflowY: "auto", flex: 1 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", marginBottom: 8 }}>MENU</div>
+              {/* Role badge */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, color: roleColor.text,
+                  background: roleColor.bg, border: `1px solid ${roleColor.border}`,
+                  borderRadius: 99, padding: "3px 10px",
+                  fontFamily: "'Plus Jakarta Sans', sans-serif", textTransform: "uppercase", letterSpacing: "0.05em",
+                }}>{roleLabel}</span>
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", marginBottom: 8 }}>{sidebarLabel}</div>
               {SIDEBAR_ITEMS.map((item) => {
                 const isActive = pathname === item.href;
                 return (
@@ -194,7 +258,7 @@ export default function DashboardShell({ userName, userEmail, userInitial, child
       )}
 
       {/* ── BODY: SIDEBAR + MAIN ── */}
-      <div className="mobile-col-1 mobile-auto-h" style={{ display: "grid", gridTemplateColumns: "220px 1fr", minHeight: "calc(100vh - 64px)" }}>
+      <div className="mobile-col-1 mobile-auto-h" style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "calc(100vh - 64px)" }}>
 
         {/* ── SIDEBAR (desktop) ── */}
         <aside className="mobile-hide" style={{
@@ -202,17 +266,33 @@ export default function DashboardShell({ userName, userEmail, userInitial, child
           display: "flex", flexDirection: "column", position: "sticky", top: 64,
           height: "calc(100vh - 64px)", overflowY: "auto", boxShadow: "2px 0 12px rgba(15,23,42,0.04)",
         }}>
+          {/* Role badge */}
+          <div style={{ marginBottom: 16, padding: "0 14px" }}>
+            <span style={{
+              fontSize: 10, fontWeight: 700, color: roleColor.text,
+              background: roleColor.bg, border: `1px solid ${roleColor.border}`,
+              borderRadius: 99, padding: "4px 12px",
+              fontFamily: "'Plus Jakarta Sans', sans-serif", textTransform: "uppercase", letterSpacing: "0.05em",
+              display: "inline-flex", alignItems: "center", gap: 5,
+            }}>
+              <Shield size={10} />
+              {roleLabel}
+            </span>
+          </div>
+
+          <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)", padding: "0 14px", marginBottom: 10, letterSpacing: "0.06em" }}>{sidebarLabel}</div>
+
           {SIDEBAR_ITEMS.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link key={item.label} href={item.href} style={{
                 display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10,
-                textDecoration: "none", marginBottom: 4,
+                textDecoration: "none", marginBottom: 3,
                 background: isActive ? "var(--primary-subtle)" : "transparent",
                 border: `1px solid ${isActive ? "rgba(37,99,235,0.2)" : "transparent"}`,
                 color: isActive ? "var(--primary)" : "var(--text-2)",
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontWeight: isActive ? 700 : 500, fontSize: 14, transition: "all 0.15s",
+                fontWeight: isActive ? 700 : 500, fontSize: 13, transition: "all 0.15s",
               }} className="sidebar-link">
                 <item.icon size={16} />
                 <span style={{ flex: 1 }}>{item.label}</span>
@@ -236,7 +316,13 @@ export default function DashboardShell({ userName, userEmail, userInitial, child
                   <div style={{ fontSize: 10, color: "var(--emerald)" }}>● Active</div>
                 </div>
               </div>
-              <p style={{ fontSize: 11, color: "var(--text-2)", lineHeight: 1.5 }}>Your learning path is being dynamically updated based on recent activity.</p>
+              <p style={{ fontSize: 11, color: "var(--text-2)", lineHeight: 1.5 }}>
+                {userRole === "admin"
+                  ? "Platform analytics are being monitored in real-time."
+                  : userRole === "teacher"
+                  ? "Course insights are being updated based on student activity."
+                  : "Your learning path is being dynamically updated based on recent activity."}
+              </p>
             </div>
           </div>
         </aside>
@@ -248,8 +334,8 @@ export default function DashboardShell({ userName, userEmail, userInitial, child
           </div>
         </main>
       </div>
-      {/* AI Chat Widget */}
-      <AIChatWidget />
+      {/* AI Chat Widget - only for students */}
+      {userRole === "student" && <AIChatWidget />}
     </div>
   );
 }

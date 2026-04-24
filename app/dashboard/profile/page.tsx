@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import { getRoleLabel, getRoleColor } from "@/lib/auth-helpers";
+import type { UserRole } from "@/lib/types";
 import {
   User, Mail, Edit3, Save, X, LogOut,
   BookOpen, Trophy, Calendar, Shield, Camera,
@@ -25,6 +27,7 @@ export default function ProfilePage() {
   // Editable fields
   const [fullName, setFullName] = useState("");
   const [headline, setHeadline] = useState("");
+  const [userRole, setUserRole] = useState<UserRole>("student");
 
   // Stats
   const [enrollmentCount, setEnrollmentCount] = useState(0);
@@ -44,7 +47,7 @@ export default function ProfilePage() {
       // Fetch profile from users table
       const { data: profileData } = await supabase
         .from("users")
-        .select("*")
+        .select("*, role")
         .eq("id", user.id)
         .single();
 
@@ -52,6 +55,7 @@ export default function ProfilePage() {
         setProfile(profileData);
         setFullName(profileData.full_name || user.user_metadata?.full_name || "");
         setHeadline(profileData.headline || "");
+        setUserRole((profileData.role as UserRole) || "student");
       } else {
         setFullName(user.user_metadata?.full_name || "");
         setHeadline("");
@@ -288,6 +292,21 @@ export default function ProfilePage() {
                   </div>
                 </div>
               ))}
+              {/* Role badge */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "var(--bg-base)", borderRadius: 10, border: "1px solid var(--border)" }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: getRoleColor(userRole).bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Shield size={14} color={getRoleColor(userRole).text} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 600, marginBottom: 2 }}>Role</div>
+                  <span style={{
+                    fontSize: 12, fontWeight: 700, color: getRoleColor(userRole).text,
+                    background: getRoleColor(userRole).bg, border: `1px solid ${getRoleColor(userRole).border}`,
+                    borderRadius: 99, padding: "3px 12px",
+                    fontFamily: "'Plus Jakarta Sans', sans-serif", textTransform: "uppercase", letterSpacing: "0.03em",
+                  }}>{getRoleLabel(userRole)}</span>
+                </div>
+              </div>
             </div>
           </div>
 

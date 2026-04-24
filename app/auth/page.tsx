@@ -6,13 +6,35 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import {
   Zap, Eye, EyeOff, Mail, Lock, User,
-  Globe, GitBranch, Sparkles, Check, TrendingUp, Users, BookOpen
+  Globe, GitBranch, Sparkles, Check, TrendingUp, Users, BookOpen,
+  GraduationCap
 } from "lucide-react";
 
 const INSIGHTS = [
   { icon: TrendingUp, stat: "98%", label: "Retention Rate" },
   { icon: Users, stat: "500K+", label: "Active Learners" },
   { icon: BookOpen, stat: "12K+", label: "Curated Paths" },
+];
+
+const ROLE_OPTIONS = [
+  {
+    value: "student",
+    label: "Student",
+    description: "I want to learn and take courses",
+    icon: BookOpen,
+    color: "#2563EB",
+    bg: "#EFF6FF",
+    border: "rgba(37,99,235,0.3)",
+  },
+  {
+    value: "teacher",
+    label: "Teacher",
+    description: "I want to create and teach courses",
+    icon: GraduationCap,
+    color: "#059669",
+    bg: "#ECFDF5",
+    border: "rgba(5,150,105,0.3)",
+  },
 ];
 
 export default function AuthPage() {
@@ -23,6 +45,7 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [selectedRole, setSelectedRole] = useState<"student" | "teacher">("student");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -33,21 +56,42 @@ export default function AuthPage() {
 
     try {
       if (tab === "register") {
+        // 1. Sign up with role in metadata
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password: password.trim(),
           options: {
             data: {
               full_name: name.trim(),
+              role: selectedRole,
             },
             emailRedirectTo: `${window.location.origin}/auth/callback`,
           },
         });
         if (error) throw error;
         
+        if (data?.user) {
+          // 2. Immediately create row in public.users with selected role
+          const { error: insertError } = await supabase
+            .from("users")
+            .upsert({
+              id: data.user.id,
+              full_name: name.trim(),
+              role: selectedRole,
+            }, { onConflict: "id" });
+
+          if (insertError) {
+            console.warn("Could not save role during signup:", insertError.message);
+          }
+        }
+
         if (data?.session) {
-           router.refresh();
-           router.push("/onboarding"); // New users go to onboarding
+          router.refresh();
+          if (selectedRole === "teacher") {
+            router.push("/dashboard"); // Teachers skip onboarding
+          } else {
+            router.push("/onboarding");
+          }
         } else {
            setErrorMsg("Success! Please sign in to continue.");
            setTab("login");
@@ -60,17 +104,33 @@ export default function AuthPage() {
         });
         if (error) throw error;
 
-        // Check if user has completed onboarding
+        // Check user role and onboarding status
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { data: prefs } = await supabase
-            .from("user_preferences")
-            .select("id")
-            .eq("user_id", user.id)
+          // Fetch role
+          const { data: userData } = await supabase
+            .from("users")
+            .select("role")
+            .eq("id", user.id)
             .single();
 
-          router.refresh();
-          router.push(prefs ? "/dashboard" : "/onboarding");
+          const role = userData?.role || "student";
+
+          if (role === "admin" || role === "teacher") {
+            // Admin/Teacher go directly to dashboard
+            router.refresh();
+            router.push("/dashboard");
+          } else {
+            // Student: check onboarding
+            const { data: prefs } = await supabase
+              .from("user_preferences")
+              .select("id")
+              .eq("user_id", user.id)
+              .single();
+
+            router.refresh();
+            router.push(prefs ? "/dashboard" : "/onboarding");
+          }
         } else {
           router.refresh();
           router.push("/dashboard");
@@ -114,7 +174,7 @@ export default function AuthPage() {
         background: "white", borderRight: "1px solid var(--border)",
         position: "relative", boxShadow: "4px 0 24px rgba(15,23,42,0.04)",
       }}>
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", marginBottom: 64 }}>
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", marginBottom: 48 }}>
           <div style={{
             width: 34, height: 34, borderRadius: 10,
             background: "linear-gradient(135deg, var(--primary-dark), var(--primary-light))",
@@ -127,15 +187,15 @@ export default function AuthPage() {
           </span>
         </Link>
 
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", maxWidth: 400 }}>
-          <div style={{ marginBottom: 36 }}>
-            <h1 style={{ fontSize: 34, fontWeight: 800, marginBottom: 10, color: "var(--text-1)" }}>
-              {tab === "login" ? "Welcome back 👋" : "Start learning today"}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", maxWidth: 420 }}>
+          <div style={{ marginBottom: 28 }}>
+            <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 10, color: "var(--text-1)" }}>
+              {tab === "login" ? "Welcome back 👋" : "Start your journey"}
             </h1>
             <p style={{ color: "var(--text-2)", fontSize: 15 }}>
               {tab === "login"
                 ? "Enter your details to access your curated dashboard."
-                : "Create your account and get a personalized AI learning path."}
+                : "Create your account and choose your role."}
             </p>
           </div>
 
@@ -144,7 +204,7 @@ export default function AuthPage() {
               background: errorMsg.includes("Success") ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)",
               border: `1px solid ${errorMsg.includes("Success") ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)"}`,
               color: errorMsg.includes("Success") ? "var(--emerald)" : "var(--red)",
-              padding: "12px 16px", borderRadius: 8, fontSize: 13, marginBottom: 24,
+              padding: "12px 16px", borderRadius: 8, fontSize: 13, marginBottom: 20,
             }}>
               {errorMsg}
             </div>
@@ -152,7 +212,7 @@ export default function AuthPage() {
 
           <div style={{
             display: "grid", gridTemplateColumns: "1fr 1fr", background: "var(--bg-base)",
-            borderRadius: 12, padding: 4, marginBottom: 32, border: "1.5px solid var(--border)",
+            borderRadius: 12, padding: 4, marginBottom: 24, border: "1.5px solid var(--border)",
           }}>
             {(["login", "register"] as const).map((t) => (
               <button key={t} onClick={() => { setTab(t); setErrorMsg(null); }} style={{
@@ -166,7 +226,7 @@ export default function AuthPage() {
             ))}
           </div>
 
-          <form onSubmit={handleAuth} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <form onSubmit={handleAuth} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {tab === "register" && (
               <div>
                 <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 8, fontFamily: "'Plus Jakarta Sans', sans-serif", color: "var(--text-1)" }}>
@@ -210,6 +270,71 @@ export default function AuthPage() {
               </div>
             </div>
 
+            {/* ── ROLE SELECTOR (sign-up only) ── */}
+            {tab === "register" && (
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 10, fontFamily: "'Plus Jakarta Sans', sans-serif", color: "var(--text-1)" }}>
+                  I want to join as
+                </label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  {ROLE_OPTIONS.map((role) => {
+                    const isSelected = selectedRole === role.value;
+                    return (
+                      <button
+                        key={role.value}
+                        type="button"
+                        onClick={() => setSelectedRole(role.value as "student" | "teacher")}
+                        style={{
+                          display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+                          background: isSelected ? role.bg : "white",
+                          border: `2px solid ${isSelected ? role.color : "var(--border)"}`,
+                          borderRadius: 14, padding: "16px 12px", cursor: "pointer",
+                          transition: "all 0.2s ease",
+                          position: "relative", overflow: "hidden",
+                        }}
+                      >
+                        {/* Check mark */}
+                        {isSelected && (
+                          <div style={{
+                            position: "absolute", top: 8, right: 8,
+                            width: 18, height: 18, borderRadius: "50%",
+                            background: role.color,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                          }}>
+                            <Check size={10} color="white" strokeWidth={3} />
+                          </div>
+                        )}
+
+                        <div style={{
+                          width: 40, height: 40, borderRadius: 12,
+                          background: isSelected ? `${role.color}20` : "var(--bg-base)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          transition: "all 0.2s",
+                        }}>
+                          <role.icon size={20} color={isSelected ? role.color : "var(--text-3)"} />
+                        </div>
+
+                        <div style={{
+                          fontFamily: "'Plus Jakarta Sans', sans-serif",
+                          fontWeight: 700, fontSize: 14,
+                          color: isSelected ? role.color : "var(--text-1)",
+                        }}>
+                          {role.label}
+                        </div>
+
+                        <div style={{
+                          fontSize: 11, color: isSelected ? role.color : "var(--text-3)",
+                          textAlign: "center", lineHeight: 1.4, opacity: isSelected ? 0.8 : 1,
+                        }}>
+                          {role.description}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {tab === "register" && (
               <div style={{ background: "var(--bg-base)", borderRadius: 12, padding: "14px 16px", border: "1.5px solid var(--border)" }}>
                 <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 10, color: "var(--text-2)", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>PASSWORD REQUIREMENTS</div>
@@ -234,7 +359,7 @@ export default function AuthPage() {
             )}
 
             <button type="submit" disabled={loading} className="btn-primary" style={{ textAlign: "center", justifyContent: "center", marginTop: 8, fontSize: 15, padding: "14px", width: "100%", opacity: loading ? 0.7 : 1 }}>
-              {loading ? "Processing..." : tab === "login" ? "Sign In" : "Create Account"}
+              {loading ? "Processing..." : tab === "login" ? "Sign In" : `Create ${selectedRole === "teacher" ? "Teacher" : "Student"} Account`}
             </button>
           </form>
 

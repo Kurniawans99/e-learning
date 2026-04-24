@@ -1,5 +1,7 @@
 // Core database types reflecting the tables in our schema
 
+export type UserRole = 'admin' | 'teacher' | 'student';
+
 export interface Course {
   id: string;
   slug: string;
@@ -34,6 +36,7 @@ export interface Instructor {
   course_count: number;
   rating: number;
   avatar_url: string | null;
+  user_id: string | null;
 }
 
 export interface CourseTag {
@@ -86,6 +89,7 @@ export interface DBUser {
   full_name: string | null;
   avatar_url: string | null;
   headline: string | null;
+  role: UserRole;
   created_at: string;
 }
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
+import type { UserRole } from "@/lib/types";
 import {
   TrendingUp, ArrowRight, Zap,
   Clock, Flame, BarChart2,
@@ -24,6 +25,25 @@ export default async function DashboardPage() {
   if (!user) {
     redirect("/auth");
   }
+
+  // Fetch user role
+  const { data: userData } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const userRole: UserRole = (userData?.role as UserRole) || "student";
+
+  // Redirect admin and teacher to their specific dashboards
+  if (userRole === "admin") {
+    redirect("/dashboard/admin");
+  }
+  if (userRole === "teacher") {
+    redirect("/dashboard/teacher");
+  }
+
+  // ── STUDENT DASHBOARD (unchanged) ──
 
   // Fetch courses for recommendations
   const { data: recommendations } = await supabase
