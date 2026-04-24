@@ -6,12 +6,14 @@ import {
   Bot, User, Minimize2, Maximize2
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import type { UserRole } from "@/lib/types";
 
 interface AIChatWidgetProps {
   courseId?: string;
   courseTitle?: string;
   courseCategory?: string;
   courseNarrative?: string;
+  userRole?: UserRole;
 }
 
 type ChatMessage = {
@@ -21,7 +23,57 @@ type ChatMessage = {
   timestamp: Date;
 };
 
-export default function AIChatWidget({ courseId, courseTitle, courseCategory, courseNarrative }: AIChatWidgetProps) {
+function getRoleConfig(role: UserRole | undefined) {
+  switch (role) {
+    case "teacher":
+      return {
+        title: "Teaching Assistant",
+        subtitle: "Asisten Mengajar AI",
+        gradient: "linear-gradient(135deg, #059669, #0EA5E9)",
+        shadow: "rgba(5,150,105,0.35)",
+        greeting: "Halo, Guru! 👋",
+        greetingText: "Saya siap membantu Anda membuat materi kursus, merencanakan kurikulum, dan mengelola pengajaran. Tanyakan apa saja!",
+        quickPrompts: [
+          "Buatkan template silabus untuk kursus baru",
+          "Buat outline kursus tentang React.js",
+          "Tips membuat materi yang engaging",
+          "Bantu buat soal quiz untuk topic tertentu",
+        ],
+      };
+    case "admin":
+      return {
+        title: "Platform Analytics AI",
+        subtitle: "Asisten Admin & Analitik",
+        gradient: "linear-gradient(135deg, #DC2626, #F59E0B)",
+        shadow: "rgba(220,38,38,0.35)",
+        greeting: "Halo, Admin! 👋",
+        greetingText: "Saya memiliki akses ke data platform terkini. Tanyakan tentang analitik, tren pengguna, atau strategi platform!",
+        quickPrompts: [
+          "Berikan ringkasan performa platform hari ini",
+          "Analisis tren enrollment bulan ini",
+          "Rekomendasi strategi meningkatkan engagement",
+          "Kategori kursus apa yang perlu ditambahkan?",
+        ],
+      };
+    case "student":
+    default:
+      return {
+        title: "IntelliCourse AI",
+        subtitle: "Asisten Belajar Pribadi",
+        gradient: "linear-gradient(135deg, #7C3AED, #2563EB)",
+        shadow: "rgba(37,99,235,0.35)",
+        greeting: "Halo! 👋",
+        greetingText: "Saya adalah asisten AI Anda. Tanyakan apa pun tentang coding, teknologi, atau materi pelajaran!",
+        quickPrompts: [
+          "Rekomendasi course untuk pemula",
+          "Jelaskan apa itu machine learning",
+          "Tips belajar programming efektif",
+        ],
+      };
+  }
+}
+
+export default function AIChatWidget({ courseId, courseTitle, courseCategory, courseNarrative, userRole }: AIChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -30,6 +82,8 @@ export default function AIChatWidget({ courseId, courseTitle, courseCategory, co
   const [loadingHistory, setLoadingHistory] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const config = getRoleConfig(userRole);
 
   // Fetch chat history
   useEffect(() => {
@@ -100,7 +154,6 @@ export default function AIChatWidget({ courseId, courseTitle, courseCategory, co
       });
 
       if (!res.ok) {
-         // handle 429
          if (res.status === 429) {
             setMessages(prev => [...prev, {
               id: (Date.now() + 1).toString(),
@@ -120,14 +173,13 @@ export default function AIChatWidget({ courseId, courseTitle, courseCategory, co
       const decoder = new TextDecoder();
       const aiMsgId = (Date.now() + 1).toString();
 
-      // Initiate empty message shell
       setMessages(prev => [...prev, {
         id: aiMsgId,
         role: "assistant",
         content: "",
         timestamp: new Date(),
       }]);
-      setLoading(false); // Stop typing indicator since stream started
+      setLoading(false);
 
       let done = false;
       while (!done) {
@@ -175,10 +227,10 @@ export default function AIChatWidget({ courseId, courseTitle, courseCategory, co
           style={{
             position: "fixed", bottom: 24, right: 24, zIndex: 1000,
             width: 56, height: 56, borderRadius: 16,
-            background: "linear-gradient(135deg, #7C3AED, #2563EB)",
+            background: config.gradient,
             border: "none", cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 8px 32px rgba(37,99,235,0.35)",
+            boxShadow: `0 8px 32px ${config.shadow}`,
             transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
           onMouseEnter={e => {
@@ -189,7 +241,6 @@ export default function AIChatWidget({ courseId, courseTitle, courseCategory, co
           }}
         >
           <Sparkles size={24} color="white" />
-          {/* Notification dot */}
           {messages.length === 0 && (
             <span style={{
               position: "absolute", top: -2, right: -2,
@@ -223,7 +274,7 @@ export default function AIChatWidget({ courseId, courseTitle, courseCategory, co
 
           {/* Header */}
           <div style={{
-            background: "linear-gradient(135deg, #7C3AED, #2563EB)",
+            background: config.gradient,
             padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between",
             flexShrink: 0,
           }}>
@@ -237,10 +288,10 @@ export default function AIChatWidget({ courseId, courseTitle, courseCategory, co
               </div>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 14, color: "white", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  IntelliCourse AI
+                  {config.title}
                 </div>
                 <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }}>
-                  {courseTitle ? `📚 ${courseTitle}` : "Asisten Belajar Pribadi"}
+                  {courseTitle ? `📚 ${courseTitle}` : config.subtitle}
                 </div>
               </div>
             </div>
@@ -290,12 +341,12 @@ export default function AIChatWidget({ courseId, courseTitle, courseCategory, co
                   <Sparkles size={24} color="var(--primary)" />
                 </div>
                 <h4 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, color: "var(--text-1)" }}>
-                  Halo! 👋
+                  {config.greeting}
                 </h4>
                 <p style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.6 }}>
                   {courseTitle
                     ? `Saya siap membantu Anda memahami materi "${courseTitle}". Tanyakan apa saja!`
-                    : "Saya adalah asisten AI Anda. Tanyakan apa pun tentang coding, teknologi, atau materi pelajaran!"}
+                    : config.greetingText}
                 </p>
                 {/* Quick prompts */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 16 }}>
@@ -305,11 +356,7 @@ export default function AIChatWidget({ courseId, courseTitle, courseCategory, co
                         "Apa prerequisite yang dibutuhkan?",
                         "Berikan tips untuk menyelesaikan course ini",
                       ]
-                    : [
-                        "Rekomendasi course untuk pemula",
-                        "Jelaskan apa itu machine learning",
-                        "Tips belajar programming efektif",
-                      ]
+                    : config.quickPrompts
                   ).map(prompt => (
                     <button key={prompt} onClick={() => { setInput(prompt); }}
                       style={{
@@ -343,7 +390,7 @@ export default function AIChatWidget({ courseId, courseTitle, courseCategory, co
                   width: 28, height: 28, borderRadius: 8, flexShrink: 0,
                   background: msg.role === "user"
                     ? "linear-gradient(135deg, var(--primary-dark), var(--primary))"
-                    : "linear-gradient(135deg, #7C3AED, #2563EB)",
+                    : config.gradient,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   {msg.role === "user"
@@ -385,7 +432,7 @@ export default function AIChatWidget({ courseId, courseTitle, courseCategory, co
               <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
                 <div style={{
                   width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-                  background: "linear-gradient(135deg, #7C3AED, #2563EB)",
+                  background: config.gradient,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   <Bot size={13} color="white" />
@@ -415,7 +462,11 @@ export default function AIChatWidget({ courseId, courseTitle, courseCategory, co
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Tanyakan sesuatu..."
+              placeholder={
+                userRole === "teacher" ? "Minta bantuan membuat materi..."
+                : userRole === "admin" ? "Tanyakan tentang data platform..."
+                : "Tanyakan sesuatu..."
+              }
               style={{
                 flex: 1, border: "1.5px solid var(--border)", borderRadius: 12,
                 padding: "10px 14px", fontSize: 13, outline: "none",
@@ -431,12 +482,12 @@ export default function AIChatWidget({ courseId, courseTitle, courseCategory, co
               style={{
                 width: 40, height: 40, borderRadius: 12, border: "none",
                 background: input.trim() && !loading
-                  ? "linear-gradient(135deg, #7C3AED, #2563EB)"
+                  ? config.gradient
                   : "var(--bg-base)",
                 cursor: input.trim() && !loading ? "pointer" : "default",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 transition: "all 0.15s", flexShrink: 0,
-                boxShadow: input.trim() && !loading ? "0 4px 12px rgba(37,99,235,0.3)" : "none",
+                boxShadow: input.trim() && !loading ? `0 4px 12px ${config.shadow}` : "none",
               }}
             >
               <Send size={16} color={input.trim() && !loading ? "white" : "var(--text-3)"} />

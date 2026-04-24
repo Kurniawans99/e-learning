@@ -334,8 +334,8 @@ export default function DashboardShell({ userName, userEmail, userInitial, userR
           </div>
         </main>
       </div>
-      {/* AI Chat Widget - only for students */}
-      {userRole === "student" && <AIChatWidget />}
+      {/* AI Chat Widget - available for all roles */}
+      <AIChatWidget userRole={userRole} />
     </div>
   );
 }
