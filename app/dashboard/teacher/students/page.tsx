@@ -38,18 +38,18 @@ export default function TeacherStudentsPage() {
       const { data: me } = await supabase.from("users").select("role").eq("id", user.id).single();
       if (me?.role !== "teacher" && me?.role !== "admin") { router.push("/dashboard"); return; }
 
-      const { data: instructor } = await supabase
+      const { data: instructors } = await supabase
         .from("instructors")
         .select("id")
         .eq("user_id", user.id)
-        .single();
+        .limit(1);
 
-      if (instructor) {
+      if (instructors && instructors.length > 0) {
         // Get courses by this teacher
         const { data: teacherCourses } = await supabase
           .from("courses")
           .select("id, title, slug")
-          .eq("instructor_id", instructor.id);
+          .eq("instructor_id", instructors[0].id);
 
         const coursesArr = teacherCourses || [];
         setCourses(coursesArr);

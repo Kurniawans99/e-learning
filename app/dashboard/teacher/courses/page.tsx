@@ -26,17 +26,17 @@ export default function TeacherCoursesPage() {
       const { data: me } = await supabase.from("users").select("role").eq("id", user.id).single();
       if (me?.role !== "teacher" && me?.role !== "admin") { router.push("/dashboard"); return; }
 
-      const { data: instructor } = await supabase
+      const { data: instructors } = await supabase
         .from("instructors")
         .select("id")
         .eq("user_id", user.id)
-        .single();
+        .limit(1);
 
-      if (instructor) {
+      if (instructors && instructors.length > 0) {
         const { data } = await supabase
           .from("courses")
           .select("id, slug, title, subtitle, category, level, rating, student_count, hours, review_count, created_at")
-          .eq("instructor_id", instructor.id)
+          .eq("instructor_id", instructors[0].id)
           .order("created_at", { ascending: false });
         setCourses(data || []);
       }
@@ -123,13 +123,21 @@ export default function TeacherCoursesPage() {
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                <Link href={`/courses/${course.slug}`} style={{
+                <Link href={`/dashboard/teacher/courses/${course.id}`} style={{
                   display: "flex", alignItems: "center", gap: 4,
                   background: "var(--primary-subtle)", color: "var(--primary)",
                   border: "1px solid rgba(37,99,235,0.2)", borderRadius: 8,
                   padding: "6px 12px", fontSize: 12, fontWeight: 600, textDecoration: "none",
                 }}>
-                  <Edit3 size={12} /> View
+                  <Edit3 size={12} /> Edit
+                </Link>
+                <Link href={`/courses/${course.slug}`} style={{
+                  display: "flex", alignItems: "center", gap: 4,
+                  background: "white", color: "var(--text-2)",
+                  border: "1px solid var(--border)", borderRadius: 8,
+                  padding: "6px 12px", fontSize: 12, fontWeight: 600, textDecoration: "none",
+                }}>
+                  Preview
                 </Link>
                 <button onClick={() => handleDelete(course.id)} disabled={deleting === course.id} style={{
                   display: "flex", alignItems: "center", gap: 4,

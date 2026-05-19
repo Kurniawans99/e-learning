@@ -37,10 +37,18 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true);
   const [openSections, setOpenSections] = useState<Record<number, boolean>>({});
   const [enrolled, setEnrolled] = useState(false);
+  const [enrolling, setEnrolling] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchCourse() {
       const supabase = createClient();
+
+      // Check user & enrollment
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+      }
       
       const { data, error } = await supabase
         .from("courses")
@@ -69,11 +77,56 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
         if (data.sections && data.sections.length > 0) {
           setOpenSections({ 0: true });
         }
+
+        // Check if user is already enrolled
+        if (user) {
+          const { data: enrollment } = await supabase
+            .from("user_enrollments")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("course_id", data.id)
+            .maybeSingle();
+          if (enrollment) setEnrolled(true);
+        }
       }
       setLoading(false);
     }
     fetchCourse();
   }, [id]);
+
+  const handleEnroll = async () => {
+    if (!course || !currentUserId) {
+      // Redirect to login if not authenticated
+      window.location.href = "/auth";
+      return;
+    }
+    setEnrolling(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from("user_enrollments").insert({
+        user_id: currentUserId,
+        course_id: course.id,
+      });
+      if (error) {
+        if (error.code === "23505") {
+          // Already enrolled (duplicate key)
+          setEnrolled(true);
+        } else {
+          throw error;
+        }
+      } else {
+        setEnrolled(true);
+        // Increment student count
+        await supabase.from("courses").update({
+          student_count: (course.student_count || 0) + 1,
+        }).eq("id", course.id);
+      }
+    } catch (err: any) {
+      alert("Gagal mendaftar: " + (err.message || "Coba lagi nanti"));
+    } finally {
+      setEnrolling(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -225,18 +278,32 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                   ))}
                 </div>
 
-                <button
-                  onClick={() => setEnrolled(true)}
-                  style={{
+                {enrolled ? (
+                  <Link href={`/courses/${id}/learn`} style={{
                     width: "100%", border: "none", borderRadius: 12, padding: "14px", color: "white",
-                    background: enrolled ? "linear-gradient(135deg, var(--emerald), #059669)" : "linear-gradient(135deg, var(--primary-dark), var(--primary))",
+                    background: "linear-gradient(135deg, var(--emerald), #059669)",
                     fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 15, cursor: "pointer", marginBottom: 12,
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.3s",
-                    boxShadow: enrolled ? "0 4px 20px rgba(16,185,129,0.35)" : "0 4px 20px rgba(37,99,235,0.35)",
-                  }}
-                >
-                  {enrolled ? <><Check size={16} /> Enrolled!</> : <>Add to Cart <ArrowRight size={16} /></>}
-                </button>
+                    boxShadow: "0 4px 20px rgba(16,185,129,0.35)", textDecoration: "none",
+                  }}>
+                    <Check size={16} /> Mulai Belajar
+                  </Link>
+                ) : (
+                  <button
+                    onClick={handleEnroll}
+                    disabled={enrolling}
+                    style={{
+                      width: "100%", border: "none", borderRadius: 12, padding: "14px", color: "white",
+                      background: "linear-gradient(135deg, var(--primary-dark), var(--primary))",
+                      fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 15, cursor: enrolling ? "wait" : "pointer", marginBottom: 12,
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.3s",
+                      boxShadow: "0 4px 20px rgba(37,99,235,0.35)",
+                      opacity: enrolling ? 0.7 : 1,
+                    }}
+                  >
+                    {enrolling ? "Enrolling..." : <>Enroll Sekarang <ArrowRight size={16} /></>}
+                  </button>
+                )}
 
                 <div style={{ textAlign: "center", marginTop: 16 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>

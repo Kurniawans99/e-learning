@@ -77,12 +77,13 @@ export async function POST(req: NextRequest) {
 
       } else if (userRole === "teacher") {
         // Teacher context: their courses, student count, ratings
-        const { data: instructor } = await supabase
+        const { data: instructors } = await supabase
           .from("instructors")
           .select("id, name")
           .eq("user_id", user.id)
-          .single();
+          .limit(1);
 
+        const instructor = instructors?.[0];
         if (instructor) {
           const { data: courses } = await supabase
             .from("courses")

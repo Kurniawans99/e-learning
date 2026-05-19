@@ -31,17 +31,17 @@ export default function TeacherDashboardPage() {
       if (me?.role !== "teacher" && me?.role !== "admin") { router.push("/dashboard"); return; }
 
       // Get instructor record linked to this user
-      const { data: instructor } = await supabase
+      const { data: instructors } = await supabase
         .from("instructors")
         .select("id")
         .eq("user_id", user.id)
-        .single();
+        .limit(1);
 
-      if (instructor) {
+      if (instructors && instructors.length > 0) {
         const { data: coursesData } = await supabase
           .from("courses")
           .select("id, slug, title, subtitle, category, level, rating, student_count, hours, review_count, created_at")
-          .eq("instructor_id", instructor.id)
+          .eq("instructor_id", instructors[0].id)
           .order("created_at", { ascending: false });
 
         const coursesArr = coursesData || [];

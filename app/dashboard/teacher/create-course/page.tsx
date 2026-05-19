@@ -44,19 +44,19 @@ export default function CreateCoursePage() {
       const { data: me } = await supabase.from("users").select("role").eq("id", user.id).single();
       if (me?.role !== "teacher" && me?.role !== "admin") { router.push("/dashboard"); return; }
 
-      // Get or create instructor record
-      const { data: instructor } = await supabase
+      // Get or create instructor record (use limit(1) to avoid .single() crash on duplicates)
+      const { data: instructors } = await supabase
         .from("instructors")
         .select("id")
         .eq("user_id", user.id)
-        .single();
+        .limit(1);
 
-      if (instructor) {
-        setInstructorId(instructor.id);
+      if (instructors && instructors.length > 0) {
+        setInstructorId(instructors[0].id);
       } else {
         // Auto-create instructor record for this teacher
         const userName = user.user_metadata?.full_name || user.email?.split("@")[0] || "Teacher";
-        const { data: newInstructor, error } = await supabase
+        const { data: newInstructor } = await supabase
           .from("instructors")
           .insert({
             name: userName,
@@ -146,9 +146,9 @@ export default function CreateCoursePage() {
         );
       }
 
-      setSuccessMsg("Course created successfully!");
+      setSuccessMsg("Course berhasil dibuat! Mengarahkan ke Course Editor...");
       setTimeout(() => {
-        router.push("/dashboard/teacher/courses");
+        router.push(`/dashboard/teacher/courses/${course.id}`);
       }, 1500);
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to create course.");

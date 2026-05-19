@@ -243,20 +243,23 @@ export default function MyCoursesPage() {
             <BookOpen size={28} color="var(--primary)" />
           </div>
           <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8, color: "var(--text-1)" }}>
-            {searchQuery ? "No courses found" : "No courses yet"}
+            {searchQuery ? "No courses found" : "Belum ada course"}
           </h3>
           <p style={{ color: "var(--text-2)", fontSize: 14, marginBottom: 24, maxWidth: 400, margin: "0 auto 24px" }}>
             {searchQuery
-              ? "Try a different search term or change the filter."
-              : "Start your learning journey by exploring our curated catalog of courses."}
+              ? "Coba kata kunci lain atau ubah filter."
+              : "Mulai perjalanan belajarmu dengan menjelajahi katalog course kami."}
           </p>
           {!searchQuery && (
-            <Link href="/" className="btn-primary" style={{ fontSize: 14, padding: "12px 24px", textDecoration: "none" }}>
-              <Sparkles size={15} /> Explore Courses
+            <Link href="/courses" className="btn-primary" style={{ fontSize: 14, padding: "12px 24px", textDecoration: "none" }}>
+              <Sparkles size={15} /> Jelajahi Course
             </Link>
           )}
         </div>
       )}
+
+      {/* Discover Courses section */}
+      {!loading && !searchQuery && <DiscoverCourses />}
     </>
   );
 }
@@ -271,4 +274,65 @@ function getTimeAgo(date: Date): string {
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d ago`;
   return date.toLocaleDateString();
+}
+
+function DiscoverCourses() {
+  const supabase = createClient();
+  const [courses, setCourses] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetch() {
+      const { data } = await supabase
+        .from("courses")
+        .select("id, slug, title, subtitle, category, level, rating, student_count, hours, instructor:instructors(name)")
+        .order("student_count", { ascending: false })
+        .limit(6);
+      setCourses(data || []);
+    }
+    fetch();
+  }, []);
+
+  if (courses.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: 36 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+        <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--text-1)" }}>
+          🔥 Course Populer
+        </h2>
+        <Link href="/courses" style={{ fontSize: 13, color: "var(--primary)", fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
+          Lihat semua <ArrowRight size={13} />
+        </Link>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
+        {courses.map(c => (
+          <Link key={c.id} href={`/courses/${c.slug}`} style={{ textDecoration: "none" }}>
+            <div className="card-hover" style={{
+              background: "white", border: "1px solid var(--border)", borderRadius: 14,
+              padding: "18px 20px", boxShadow: "0 1px 4px rgba(15,23,42,0.04)",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
+                <div style={{
+                  width: 48, height: 40, borderRadius: 10, background: "var(--primary-subtle)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 16, fontWeight: 800, color: "var(--primary)", opacity: 0.5, flexShrink: 0,
+                }}>
+                  {c.title.slice(0, 2).toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", marginBottom: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.title}</h3>
+                  <span style={{ fontSize: 11, color: "var(--text-3)" }}>{c.instructor?.name || "Instructor"} • {c.level}</span>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: "var(--text-3)", display: "flex", alignItems: "center", gap: 3 }}>⭐ {(c.rating || 0).toFixed(1)}</span>
+                <span style={{ fontSize: 11, color: "var(--text-3)", display: "flex", alignItems: "center", gap: 3 }}>👥 {c.student_count || 0}</span>
+                <span style={{ fontSize: 11, color: "var(--text-3)", display: "flex", alignItems: "center", gap: 3 }}>⏱ {c.hours}h</span>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
 }

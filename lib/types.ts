@@ -53,8 +53,11 @@ export interface CourseOutcome {
 export interface CurriculumSection {
   id: string;
   title: string;
+  description?: string;
   order: number;
   lessons?: Lesson[];
+  contents?: SectionContent[];
+  assessments?: Assessment[];
 }
 
 export interface Lesson {
@@ -64,6 +67,103 @@ export interface Lesson {
   type: "video" | "quiz" | "project" | "reading";
   is_locked: boolean;
   order: number;
+}
+
+export interface SectionContent {
+  id: string;
+  section_id: string;
+  content_type: "video" | "image" | "text" | "document";
+  title: string;
+  description: string | null;
+  content_url: string | null;
+  content_text: string | null;
+  duration: string | null;
+  file_size: number;
+  order: number;
+  created_at: string;
+  // UI-only (not saved to DB)
+  _videoMode?: "upload" | "url";
+}
+
+export interface Assessment {
+  id: string;
+  course_id: string;
+  section_id: string | null;
+  title: string;
+  description: string | null;
+  assessment_type: "quiz" | "essay" | "file_upload" | "interview";
+  time_limit_minutes: number | null;
+  passing_score: number;
+  max_attempts: number;
+  is_published: boolean;
+  order: number;
+  created_at: string;
+  // Joined
+  questions?: AssessmentQuestion[];
+  submissions?: StudentSubmission[];
+  interview_schedules?: InterviewSchedule[];
+}
+
+export interface AssessmentQuestion {
+  id: string;
+  assessment_id: string;
+  question_text: string;
+  question_type: "multiple_choice" | "essay" | "file_upload";
+  points: number;
+  order: number;
+  created_at: string;
+  // Joined
+  options?: QuestionOption[];
+}
+
+export interface QuestionOption {
+  id: string;
+  question_id: string;
+  option_text: string;
+  is_correct: boolean;
+  order: number;
+}
+
+export interface StudentSubmission {
+  id: string;
+  assessment_id: string;
+  student_id: string;
+  status: "in_progress" | "submitted" | "graded";
+  score: number | null;
+  feedback: string | null;
+  started_at: string;
+  submitted_at: string | null;
+  graded_at: string | null;
+  graded_by: string | null;
+  // Joined
+  answers?: SubmissionAnswer[];
+  student?: DBUser;
+}
+
+export interface SubmissionAnswer {
+  id: string;
+  submission_id: string;
+  question_id: string;
+  selected_option_id: string | null;
+  answer_text: string | null;
+  file_url: string | null;
+  is_correct: boolean | null;
+  points_earned: number;
+}
+
+export interface InterviewSchedule {
+  id: string;
+  assessment_id: string;
+  student_id: string;
+  scheduled_at: string;
+  meeting_url: string | null;
+  status: "scheduled" | "completed" | "cancelled" | "rescheduled";
+  notes: string | null;
+  teacher_notes: string | null;
+  score: number | null;
+  created_at: string;
+  // Joined
+  student?: DBUser;
 }
 
 export interface CourseReview {

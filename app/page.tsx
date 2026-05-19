@@ -182,7 +182,7 @@ export default async function LandingPage() {
           <span className="badge badge-primary" style={{ marginBottom: 12 }}>Curated Catalog</span>
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
             <h2 style={{ fontSize: "clamp(28px, 3vw, 40px)" }}>Popular <span className="gradient-text">Courses</span></h2>
-            <Link href="#" style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--primary)", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>View all <ChevronRight size={14} /></Link>
+            <Link href="/courses" style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--primary)", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>View all <ChevronRight size={14} /></Link>
           </div>
           <p style={{ color: "var(--text-2)", marginTop: 8, maxWidth: 500 }}>The most sought-after skills, refined by AI and validated by industry leaders.</p>
         </div>
