@@ -7,7 +7,8 @@ import {
   Zap, ArrowRight, ArrowLeft, Check, Sparkles,
   Globe, Gamepad2, BarChart2, Brain, Settings2, Palette,
   Rocket, GraduationCap, Lightbulb, Briefcase,
-  Code2, Database, Terminal, PenTool, Layers
+  Code2, Database, Terminal, PenTool, Layers,
+  Clock, Star, Users, BookOpen, Loader2, TrendingUp
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
@@ -43,6 +44,32 @@ const LEVELS = [
   { id: "advanced", label: "Mahir", desc: "Berpengalaman, ingin spesialisasi", emoji: "🌳" },
 ];
 
+type CourseRecommendation = {
+  course_id: string;
+  match_score: number;
+  reason: string;
+  course: {
+    id: string;
+    slug: string;
+    title: string;
+    subtitle: string;
+    category: string;
+    level: string;
+    hours: number;
+    rating: number;
+    student_count: number;
+  };
+};
+
+function categoryColor(category: string): string {
+  const map: Record<string, string> = {
+    "AI & ML": "#7C3AED", "Engineering": "#0EA5E9", "Design": "#F59E0B",
+    "Web3": "#10B981", "Web Development": "#2563EB", "Game Development": "#DC2626",
+    "Data Science": "#059669",
+  };
+  return map[category] ?? "#2563EB";
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -51,6 +78,10 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false);
   const [aiSummary, setAiSummary] = useState("");
   const [loadingSummary, setLoadingSummary] = useState(false);
+
+  // Course suggestions state
+  const [courseRecommendations, setCourseRecommendations] = useState<CourseRecommendation[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
 
   // Form state
   const [selectedSpecs, setSelectedSpecs] = useState<string[]>([]);
@@ -73,6 +104,8 @@ export default function OnboardingPage() {
     setList(list.includes(item) ? list.filter(i => i !== item) : [...list, item]);
   };
 
+  const TOTAL_STEPS = 6;
+
   const canProceed = () => {
     switch (step) {
       case 0: return true;
@@ -81,16 +114,21 @@ export default function OnboardingPage() {
       case 3: return selectedGoals.length > 0;
       case 4: return selectedLangs.length > 0;
       case 5: return true;
+      case 6: return true;
       default: return true;
     }
   };
 
   const handleNext = async () => {
-    if (step < 5) {
+    if (step < TOTAL_STEPS) {
       setStep(step + 1);
       if (step === 4) {
-        // Generate AI summary when entering final step
+        // Generate AI summary when entering step 5
         generateSummary();
+      }
+      if (step === 5) {
+        // Fetch course recommendations when entering step 6
+        fetchCourseRecommendations();
       }
     } else {
       // Save and redirect
@@ -139,6 +177,29 @@ Buatkan ringkasan learning path yang dipersonalisasi. Awali dengan 1 atau 2 para
       setAiSummary("Maaf, gagal memuat profil. Silakan mulai kelas pilihan Anda!");
       setLoadingSummary(false);
     }
+  };
+
+  const fetchCourseRecommendations = async () => {
+    setLoadingCourses(true);
+    try {
+      const res = await fetch("/api/ai/recommend-onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          specializations: selectedSpecs,
+          experience_level: selectedLevel,
+          goals: selectedGoals,
+          known_languages: selectedLangs,
+        }),
+      });
+      const data = await res.json();
+      if (data.recommendations) {
+        setCourseRecommendations(data.recommendations);
+      }
+    } catch (error) {
+      console.error("Failed to fetch course recommendations:", error);
+    }
+    setLoadingCourses(false);
   };
 
   const savePreferences = async () => {
@@ -413,6 +474,136 @@ Buatkan ringkasan learning path yang dipersonalisasi. Awali dengan 1 atau 2 para
         </div>
       </div>
     ),
+
+    // Step 6: Course Suggestions
+    () => (
+      <div style={{ maxWidth: 700, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div style={{
+            width: 64, height: 64, borderRadius: 18, margin: "0 auto 20px",
+            background: "linear-gradient(135deg, #2563EB, #0EA5E9)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 8px 32px rgba(37,99,235,0.3)",
+          }}>
+            <BookOpen size={28} color="white" />
+          </div>
+          <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 10, color: "var(--text-1)" }}>Course Pilihan untuk Anda 🎯</h2>
+          <p style={{ color: "var(--text-2)", fontSize: 15, lineHeight: 1.6 }}>
+            Berdasarkan preferensi Anda, AI kami merekomendasikan course-course berikut.
+          </p>
+        </div>
+
+        {/* Loading state */}
+        {loadingCourses && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: 40 }}>
+            <Loader2 size={32} color="var(--primary)" style={{ animation: "spin 1s linear infinite" }} />
+            <p style={{ color: "var(--text-3)", fontSize: 14 }}>AI sedang mencocokkan course untuk Anda...</p>
+          </div>
+        )}
+
+        {/* Course recommendations */}
+        {!loadingCourses && courseRecommendations.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {courseRecommendations.map((rec, index) => {
+              const color = categoryColor(rec.course?.category || "");
+              return (
+                <div key={rec.course_id} className="card-hover" style={{
+                  background: "white", border: `1px solid ${color}25`,
+                  borderRadius: 16, padding: "20px", overflow: "hidden",
+                  boxShadow: `0 2px 12px ${color}08`,
+                  position: "relative",
+                  animation: `slide-up 0.4s ease-out ${index * 0.1}s both`,
+                }}>
+                  {/* Top accent line */}
+                  <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: color }} />
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 16, alignItems: "start" }}>
+                    <div>
+                      {/* Category badge */}
+                      <span style={{
+                        fontSize: 10, fontWeight: 600, color,
+                        background: `${color}12`, border: `1px solid ${color}25`,
+                        padding: "2px 10px", borderRadius: 99, display: "inline-block", marginBottom: 10,
+                      }}>
+                        {rec.course?.category}
+                      </span>
+
+                      <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", marginBottom: 6, lineHeight: 1.3 }}>
+                        {rec.course?.title}
+                      </h3>
+                      <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 10, lineHeight: 1.5 }}>
+                        {rec.course?.subtitle}
+                      </p>
+
+                      {/* AI Reason */}
+                      {rec.reason && (
+                        <div style={{
+                          background: `${color}08`, border: `1px solid ${color}15`,
+                          borderRadius: 10, padding: "8px 12px", marginBottom: 10,
+                          display: "flex", gap: 6, alignItems: "flex-start",
+                        }}>
+                          <Sparkles size={12} color={color} style={{ flexShrink: 0, marginTop: 2 }} />
+                          <p style={{ fontSize: 11, color: "var(--text-2)", lineHeight: 1.5, margin: 0 }}>{rec.reason}</p>
+                        </div>
+                      )}
+
+                      {/* Meta */}
+                      <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 11, color: "var(--text-3)", display: "flex", alignItems: "center", gap: 4 }}>
+                          <Clock size={10} />{rec.course?.hours}h
+                        </span>
+                        <span style={{ fontSize: 11, color: "var(--text-3)", display: "flex", alignItems: "center", gap: 4 }}>
+                          <BarChart2 size={10} />{rec.course?.level}
+                        </span>
+                        <span style={{ fontSize: 11, color: "var(--text-3)", display: "flex", alignItems: "center", gap: 4 }}>
+                          <Star size={10} fill="#F59E0B" color="#F59E0B" />{Number(rec.course?.rating || 0).toFixed(1)}
+                        </span>
+                        <span style={{ fontSize: 11, color: "var(--text-3)", display: "flex", alignItems: "center", gap: 4 }}>
+                          <Users size={10} />{((rec.course?.student_count || 0) / 1000).toFixed(1)}k
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Match score */}
+                    <div style={{ textAlign: "center", flexShrink: 0 }}>
+                      <div style={{
+                        background: `${color}12`, border: `1.5px solid ${color}25`,
+                        borderRadius: 14, padding: "14px 16px", minWidth: 72,
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginBottom: 2 }}>
+                          <Brain size={14} color={color} />
+                        </div>
+                        <div style={{ fontSize: 24, fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif", color }}>
+                          {rec.match_score}%
+                        </div>
+                        <div style={{ fontSize: 8, color: "var(--text-3)", fontWeight: 600, textTransform: "uppercase" }}>AI Match</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!loadingCourses && courseRecommendations.length === 0 && (
+          <div style={{
+            textAlign: "center", padding: "40px 24px", background: "white",
+            border: "1px dashed var(--border)", borderRadius: 16,
+          }}>
+            <BookOpen size={24} color="var(--text-3)" />
+            <p style={{ color: "var(--text-3)", fontSize: 13, marginTop: 12 }}>
+              Belum ada course yang tersedia saat ini. Jangan khawatir, Anda bisa melihat rekomendasi di dashboard nanti!
+            </p>
+          </div>
+        )}
+
+        <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: "var(--text-3)" }}>
+          Anda bisa melihat semua rekomendasi ini di dashboard nanti. Klik "Mulai Belajar" untuk masuk!
+        </p>
+      </div>
+    ),
   ];
 
   return (
@@ -434,7 +625,7 @@ Buatkan ringkasan learning path yang dipersonalisasi. Awali dengan 1 atau 2 para
         </div>
         {step > 0 && (
           <div style={{ fontSize: 13, color: "var(--text-3)", fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 600 }}>
-            {step} / 5
+            {step} / {TOTAL_STEPS}
           </div>
         )}
       </div>
@@ -446,14 +637,14 @@ Buatkan ringkasan learning path yang dipersonalisasi. Awali dengan 1 atau 2 para
             <div style={{
               height: "100%", borderRadius: 4,
               background: "linear-gradient(90deg, var(--primary-dark), var(--primary-light))",
-              width: `${(step / 5) * 100}%`, transition: "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+              width: `${(step / TOTAL_STEPS) * 100}%`, transition: "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
             }} />
           </div>
         </div>
       )}
 
       {/* Content */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 32px" }}>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 32px", overflowY: "auto" }}>
         {STEPS[step]()}
       </div>
 
@@ -478,10 +669,12 @@ Buatkan ringkasan learning path yang dipersonalisasi. Awali dengan 1 atau 2 para
           style={{
             fontSize: 15, padding: "12px 28px", opacity: canProceed() && !saving ? 1 : 0.5,
           }}>
-          {saving ? "Menyimpan..." : step === 5 ? (
+          {saving ? "Menyimpan..." : step === TOTAL_STEPS ? (
             <><Sparkles size={16} /> Mulai Belajar</>
           ) : step === 0 ? (
             <><Rocket size={16} /> Mulai Personalisasi</>
+          ) : step === 5 ? (
+            <>Lihat Course Pilihan <ArrowRight size={16} /></>
           ) : (
             <>Lanjutkan <ArrowRight size={16} /></>
           )}
@@ -493,6 +686,8 @@ Buatkan ringkasan learning path yang dipersonalisasi. Awali dengan 1 atau 2 para
           0%, 80%, 100% { transform: translateY(0); }
           40% { transform: translateY(-6px); }
         }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes slide-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
     </div>
   );

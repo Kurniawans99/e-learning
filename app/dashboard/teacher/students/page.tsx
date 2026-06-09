@@ -56,11 +56,12 @@ export default function TeacherStudentsPage() {
 
         if (coursesArr.length > 0) {
           const courseIds = coursesArr.map(c => c.id);
+          const courseMap = new Map(coursesArr.map(c => [c.id, c]));
           
           // Get enrollments for these courses
           const { data: enrollData } = await supabase
             .from("user_enrollments")
-            .select("id, user_id, progress, status, enrolled_at, courses(title, slug)")
+            .select("id, user_id, progress, status, enrolled_at, course_id")
             .in("course_id", courseIds)
             .order("enrolled_at", { ascending: false });
 
@@ -77,6 +78,7 @@ export default function TeacherStudentsPage() {
             setEnrollments(enrollData.map((e: any) => ({
               ...e,
               user_name: userMap.get(e.user_id) || "Unknown Student",
+              courses: courseMap.get(e.course_id) || { title: "Unknown Course", slug: "" }
             })));
           }
         }
