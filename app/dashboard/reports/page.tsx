@@ -7,8 +7,9 @@ import {
   FileText, BarChart2, CheckCircle2, XCircle, Clock,
   Search, Sparkles, Brain, TrendingUp, Award, Target,
   ChevronDown, ChevronRight, Loader2, ArrowRight,
-  BookOpen, Star, AlertTriangle, Filter
+  BookOpen, Star, AlertTriangle, Filter, Download
 } from "lucide-react";
+import { exportToExcel, formatDateForExport } from "@/lib/export-utils";
 
 type SubmissionWithDetails = {
   id: string;
@@ -167,18 +168,66 @@ ${reportLines}`;
     }
   };
 
+  const handleExportReport = () => {
+    const data = submissions.map(s => {
+      const assessment = s.assessments;
+      const course = assessment?.courses;
+      const isGraded = s.status === "graded";
+      const isPassed = isGraded && (s.score ?? 0) >= (assessment?.passing_score ?? 60);
+      return {
+        "Assessment": assessment?.title || "—",
+        "Type": assessment?.assessment_type || "—",
+        "Course": course?.title || "—",
+        "Category": course?.category || "—",
+        "Status": s.status === "graded" ? "Graded" : s.status === "submitted" ? "Pending" : "In Progress",
+        "Score": s.score ?? "—",
+        "Passing Score": assessment?.passing_score ?? 60,
+        "Result": isGraded ? (isPassed ? "Passed" : "Failed") : "—",
+        "Feedback": s.feedback || "—",
+        "Started At": formatDateForExport(s.started_at),
+        "Submitted At": formatDateForExport(s.submitted_at),
+        "Graded At": formatDateForExport(s.graded_at),
+      };
+    });
+
+    const summaryData = [{
+      "Total Assessments": submissions.length,
+      "Graded": totalGraded,
+      "Average Score": `${avgScore}%`,
+      "Passed": passedCount,
+      "Failed": failedCount,
+      "Pass Rate": totalGraded > 0 ? `${Math.round((passedCount / totalGraded) * 100)}%` : "—",
+    }];
+
+    exportToExcel([
+      { name: "Summary", data: summaryData },
+      { name: "Assessment Details", data },
+    ], "My_Assessment_Report");
+  };
+
   return (
     <>
       {/* Header */}
-      <div style={{ marginBottom: 32 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-          <FileText size={16} color="var(--primary)" />
-          <span style={{ fontSize: 12, color: "var(--primary)", fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.06em", textTransform: "uppercase" }}>LAPORAN BELAJAR</span>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 32, flexWrap: "wrap", gap: 16 }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+            <FileText size={16} color="var(--primary)" />
+            <span style={{ fontSize: 12, color: "var(--primary)", fontWeight: 700, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.06em", textTransform: "uppercase" }}>LAPORAN BELAJAR</span>
+          </div>
+          <h1 style={{ fontSize: "clamp(24px, 3vw, 36px)", marginBottom: 12, color: "var(--text-1)" }}>Reports</h1>
+          <p style={{ color: "var(--text-2)", fontSize: 15, lineHeight: 1.6, maxWidth: 560 }}>
+            Lihat hasil assessment Anda dan dapatkan saran AI untuk meningkatkan performa belajar.
+          </p>
         </div>
-        <h1 style={{ fontSize: "clamp(24px, 3vw, 36px)", marginBottom: 12, color: "var(--text-1)" }}>Reports</h1>
-        <p style={{ color: "var(--text-2)", fontSize: 15, lineHeight: 1.6, maxWidth: 560 }}>
-          Lihat hasil assessment Anda dan dapatkan saran AI untuk meningkatkan performa belajar.
-        </p>
+        <button onClick={handleExportReport} disabled={submissions.length === 0} style={{
+          display: "flex", alignItems: "center", gap: 8, padding: "10px 18px",
+          background: "white", border: "1.5px solid var(--border)", borderRadius: 12,
+          fontSize: 13, fontWeight: 700, color: "var(--text-1)", cursor: submissions.length === 0 ? "not-allowed" : "pointer",
+          fontFamily: "'Plus Jakarta Sans', sans-serif", boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+          opacity: submissions.length === 0 ? 0.5 : 1,
+        }}>
+          <Download size={15} /> Export Report
+        </button>
       </div>
 
       {/* Stats cards */}
